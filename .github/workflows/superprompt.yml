@@ -1,0 +1,34 @@
+name: Superprompt Validation & Build
+
+on:
+  push:
+    branches: [ master, main ]
+    paths:
+      - 'superprompt/secciones/**'
+      - 'superprompt/build.py'
+  pull_request:
+    branches: [ master, main ]
+    paths:
+      - 'superprompt/secciones/**'
+  workflow_dispatch:
+
+jobs:
+  build-superprompt:
+    name: Compile Master Superprompt
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar repositorio
+        uses: actions/checkout@v4
+
+      - name: Configurar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Ejecutar Compilador de Superprompt
+        run: python superprompt/build.py
+
+      - name: Validar existencia de SUPERPROMPT.md
+        run: |
+          test -f SUPERPROMPT.md || exit 1
+          echo "SUPERPROMPT compilado y validado exitosamente en GitHub Actions."
