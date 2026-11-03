@@ -1,21 +1,13 @@
 import os
-import shutil
 
 BASE_DIR = os.path.dirname(__file__)
 SECCIONES_DIR = os.path.join(BASE_DIR, 'secciones')
 ROOT_DIR = os.path.join(BASE_DIR, '..')
 
-BACKEND_DIR = os.path.abspath(os.path.join(ROOT_DIR, '..', 'Barberia-Backend'))
-FRONTEND_DIR = os.path.abspath(os.path.join(ROOT_DIR, '..', 'Barberia-Frontend'))
-
-# Destinos en superPromptBarberia
+# Destinos estrictamente dentro de superPromptBarberia
 OUTPUT_MASTER = os.path.join(ROOT_DIR, 'SUPERPROMPT.md')
 OUTPUT_BACKEND = os.path.join(ROOT_DIR, 'SUPERPROMPT_BACKEND.md')
 OUTPUT_FRONTEND = os.path.join(ROOT_DIR, 'SUPERPROMPT_FRONTEND.md')
-
-# Destinos en los respectivos repositorios
-BACKEND_LOCAL_COPY = os.path.join(BACKEND_DIR, 'SUPERPROMPT_BACKEND.md')
-FRONTEND_LOCAL_COPY = os.path.join(FRONTEND_DIR, 'SUPERPROMPT_FRONTEND.md')
 
 SECCIONES_BACKEND = [
     '00-instrucciones-ia.md',
@@ -96,7 +88,7 @@ def main():
 
     todos = sorted([f for f in os.listdir(SECCIONES_DIR) if f.endswith('.md')])
     
-    print("Compilando Superprompts...")
+    print("Compilando Superprompts en superPromptBarberia...")
     # 1. Master Completo
     compilar_archivo(
         "SUPERPROMPT MAESTRO GLOBAL - KYRIOS BARBER SAAS",
@@ -120,15 +112,6 @@ def main():
         SECCIONES_FRONTEND,
         OUTPUT_FRONTEND
     )
-    
-    # 4. Copiar a los repositorios respectivos si existen
-    if os.path.exists(BACKEND_DIR):
-        shutil.copyfile(OUTPUT_BACKEND, BACKEND_LOCAL_COPY)
-        print(f"[OK] Copia sincronizada en: {BACKEND_LOCAL_COPY}")
-        
-    if os.path.exists(FRONTEND_DIR):
-        shutil.copyfile(OUTPUT_FRONTEND, FRONTEND_LOCAL_COPY)
-        print(f"[OK] Copia sincronizada en: {FRONTEND_LOCAL_COPY}")
 
 if __name__ == '__main__':
     main()
