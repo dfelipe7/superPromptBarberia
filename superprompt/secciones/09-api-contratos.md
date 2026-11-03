@@ -58,7 +58,130 @@
 
 ---
 
-## 9.3 Formato Estándar de Errores (JSON)
+## 9.3 Payloads JSON Canónicos (DTOs de Entrada y Salida)
+
+Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **DEBE replicar exactamente estos contratos**:
+
+### 1. Alta de Nuevo Tenant: `POST /plataforma/negocios`
+**Request Body:**
+```json
+{
+  "nombre": "Barbería Elite Bogotá",
+  "slug": "barberia-elite-bogota",
+  "zonaHoraria": "America/Bogota",
+  "superadmin": {
+    "nombre": "Carlos",
+    "apellido": "Gómez",
+    "email": "carlos.gomez@gmail.com"
+  }
+}
+```
+**Response Body (201 Created):**
+```json
+{
+  "id": 3,
+  "nombre": "Barbería Elite Bogotá",
+  "slug": "barberia-elite-bogota",
+  "estado": "ACTIVO",
+  "zonaHoraria": "America/Bogota",
+  "superadmin": {
+    "usuarioId": 12,
+    "email": "carlos.gomez@gmail.com",
+    "superadmin": true
+  },
+  "perfil": {
+    "temaKey": "clasico-azul",
+    "latitud": null,
+    "longitud": null
+  }
+}
+```
+
+### 2. Actualización de Marca y Ubicación: `PUT /negocios/perfil`
+*(Requiere cabecera `X-Negocio-Slug: <slug>` y token de administrador).*
+**Request Body:**
+```json
+{
+  "frasePrincipal": "El arte clásico del corte masculino",
+  "temaKey": "cyber-lime",
+  "direccion": "Calle 85 # 14-20",
+  "ciudad": "Bogotá",
+  "departamento": "Cundinamarca",
+  "referencia": "Piso 2, frente al parque",
+  "latitud": 4.6675200,
+  "longitud": -74.0564300
+}
+```
+**Response Body (200 OK):**
+```json
+{
+  "id": 3,
+  "negocioId": 3,
+  "frasePrincipal": "El arte clásico del corte masculino",
+  "temaKey": "cyber-lime",
+  "direccion": "Calle 85 # 14-20",
+  "ciudad": "Bogotá",
+  "departamento": "Cundinamarca",
+  "referencia": "Piso 2, frente al parque",
+  "latitud": "4.6675200",
+  "longitud": "-74.0564300",
+  "updatedAt": "2026-11-02T19:00:00.000Z"
+}
+```
+
+### 3. Agendamiento de Reserva: `POST /reservas`
+*(Requiere cabecera `X-Negocio-Slug: <slug>`).*
+**Request Body (Cliente Invitado):**
+```json
+{
+  "barberoId": 5,
+  "servicioId": 2,
+  "date": "2026-11-10",
+  "startTime": "10:00",
+  "cliente": {
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "telefono": "+573001234567",
+    "email": "juan.perez@example.com"
+  }
+}
+```
+**Response Body (201 Created):**
+```json
+{
+  "id": 142,
+  "barberoId": 5,
+  "servicioId": 2,
+  "clienteId": 89,
+  "date": "2026-11-10T00:00:00.000Z",
+  "startTime": "10:00",
+  "endTime": "11:00",
+  "status": "CONFIRMED",
+  "precioReservado": "35000.00",
+  "tokenGestion": "a8f3b...9c2d",
+  "mensaje": "Reserva creada exitosamente"
+}
+```
+
+### 4. Consulta de Disponibilidad de Barbero: `GET /usuarios/barberos/:id/disponibilidad?fecha=2026-11-10&servicioId=2`
+**Response Body (200 OK):**
+```json
+{
+  "barberoId": 5,
+  "fecha": "2026-11-10",
+  "franjasDisponibles": [
+    { "startTime": "09:00", "endTime": "10:00", "disponible": true },
+    { "startTime": "10:00", "endTime": "11:00", "disponible": false, "motivo": "OCUPADO" },
+    { "startTime": "11:00", "endTime": "12:00", "disponible": true },
+    { "startTime": "12:00", "endTime": "13:00", "disponible": false, "motivo": "DESCANSO" },
+    { "startTime": "14:00", "endTime": "15:00", "disponible": true }
+  ]
+}
+```
+
+---
+
+## 9.4 Formato Estándar de Errores (JSON)
 ```json
 {
   "statusCode": 403,

@@ -51,3 +51,74 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
      * `CONFIRMADA` ➔ `COMPLETADA`
      * `CONFIRMADA` ➔ `CANCELADA`
      * `CONFIRMADA` ➔ `NO_SHOW` (Inasistencia tras tolerancia)
+
+---
+
+## 5.3 Árbol Estructural Canónico del Repositorio
+
+Cualquier IA o desarrollador que reconstruya el sistema **DEBE estructurar el código en las siguientes rutas y módulos**:
+
+```
+Barberia-Backend/
+├── prisma/
+│   ├── schema.prisma                  # Esquema Prisma canónico
+│   └── migrations/                    # Historial de migraciones SQL versionadas
+├── src/
+│   ├── main.ts                        # Bootstrap NestJS con Helmet, Throttler, ValidationPipe
+│   ├── app.module.ts                  # Registro raíz de módulos y middleware de inquilinos
+│   ├── auth/                          # Autenticación JWT, Google OAuth, Guards y Decoradores
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   ├── guards/                    # JwtAuthGuard, RolesGuard
+│   │   └── decorators/                # @Roles(), @CurrentUser()
+│   ├── common/
+│   │   ├── filters/                   # all-exceptions.filter.ts
+│   │   ├── middleware/                # tenant-context.middleware.ts (resuelve X-Negocio-Slug)
+│   │   └── guards/                    # tenant.guard.ts
+│   ├── prisma/
+│   │   ├── prisma.service.ts          # Conexión Prisma y extensiones de aislamiento
+│   │   └── prisma.module.ts
+│   └── modules/
+│       ├── alerts/                    # Alertas SMTP de seguridad inmediata
+│       ├── configuracion/             # Políticas operativas del tenant (cancelación, no-show)
+│       ├── horarios/                  # Motor de disponibilidad, cálculo de slots de 60m
+│       ├── negocios/                  # Directorio SaaS, onboarding POST /plataforma/negocios
+│       ├── perfil-negocio/            # Identidad visual (temaKey), coordenadas GPS, logos
+│       ├── reservas/                  # Agendamiento, máquina de estados, token de gestión
+│       ├── servicios/                 # Catálogo de servicios por sede
+│       ├── usuarios/                  # Personal (Administradores, Barberos, comisiones)
+│       └── whatsapp/                  # Baileys WhatsApp multi-tenant en disco
+└── test/                              # Suites e2e y pruebas de integración
+
+Barberia-Frontend/
+├── src/
+│   ├── main.tsx                       # Bootstrap React 19 con QueryClient y BrowserRouter
+│   ├── App.tsx                        # Rutas dinámicas /:slug, /plataforma, ErrorBoundary
+│   ├── auth/
+│   │   ├── context/AuthContext.tsx    # Sesión de personal administrativo y barbero
+│   │   └── services/authService.ts
+│   ├── config/
+│   │   └── tenantTheme.ts             # Paletas de temas ('clasico-azul', 'cyber-lime', etc.)
+│   ├── features/
+│   │   ├── negocio/
+│   │   │   ├── context/TenantBrandContext.tsx  # Inyección de tema visual (data-tenant-theme)
+│   │   │   └── pages/ConfiguracionNegocioPage.tsx
+│   │   ├── reservas/
+│   │   │   ├── pages/ReservaClientePage.tsx    # Wizard público de reserva
+│   │   │   ├── pages/ClientePortalPage.tsx     # Portal cliente autenticado
+│   │   │   └── pages/ReservaGestionInvitadoPage.tsx # Gestión de cita vía token hash
+│   │   ├── barberos/                  # Gestión de personal y comisiones
+│   │   ├── servicios/                 # Gestión del catálogo de servicios
+│   │   ├── horarios/                  # Gestión de matriz horaria y bloqueos
+│   │   └── whatsapp/                  # Vinculación QR multi-tenant
+│   ├── pages/
+│   │   ├── Home/                      # Landing pública por barbería (/:slug)
+│   │   │   └── components/LocationSection.tsx  # Mapa OpenStreetMap con modo oscuro y GPS
+│   │   ├── Dashboard/                 # Panel administrativo por sede
+│   │   ├── Plataforma/                # Hub global SaaS (/plataforma y /)
+│   │   └── Login/                     # Inicio de sesión con Google SSO
+│   └── shared/
+│       ├── lib/http/axios.ts          # Clientes Axios duales (apiClient y reservasApiClient)
+│       ├── layout/                    # MainLayout, Header, Sidebar
+│       └── components/                # ProtectedRoute, ErrorBoundary
+```

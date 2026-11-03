@@ -362,6 +362,77 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
 
 ---
 
+## 5.3 Árbol Estructural Canónico del Repositorio
+
+Cualquier IA o desarrollador que reconstruya el sistema **DEBE estructurar el código en las siguientes rutas y módulos**:
+
+```
+Barberia-Backend/
+├── prisma/
+│   ├── schema.prisma                  # Esquema Prisma canónico
+│   └── migrations/                    # Historial de migraciones SQL versionadas
+├── src/
+│   ├── main.ts                        # Bootstrap NestJS con Helmet, Throttler, ValidationPipe
+│   ├── app.module.ts                  # Registro raíz de módulos y middleware de inquilinos
+│   ├── auth/                          # Autenticación JWT, Google OAuth, Guards y Decoradores
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   ├── guards/                    # JwtAuthGuard, RolesGuard
+│   │   └── decorators/                # @Roles(), @CurrentUser()
+│   ├── common/
+│   │   ├── filters/                   # all-exceptions.filter.ts
+│   │   ├── middleware/                # tenant-context.middleware.ts (resuelve X-Negocio-Slug)
+│   │   └── guards/                    # tenant.guard.ts
+│   ├── prisma/
+│   │   ├── prisma.service.ts          # Conexión Prisma y extensiones de aislamiento
+│   │   └── prisma.module.ts
+│   └── modules/
+│       ├── alerts/                    # Alertas SMTP de seguridad inmediata
+│       ├── configuracion/             # Políticas operativas del tenant (cancelación, no-show)
+│       ├── horarios/                  # Motor de disponibilidad, cálculo de slots de 60m
+│       ├── negocios/                  # Directorio SaaS, onboarding POST /plataforma/negocios
+│       ├── perfil-negocio/            # Identidad visual (temaKey), coordenadas GPS, logos
+│       ├── reservas/                  # Agendamiento, máquina de estados, token de gestión
+│       ├── servicios/                 # Catálogo de servicios por sede
+│       ├── usuarios/                  # Personal (Administradores, Barberos, comisiones)
+│       └── whatsapp/                  # Baileys WhatsApp multi-tenant en disco
+└── test/                              # Suites e2e y pruebas de integración
+
+Barberia-Frontend/
+├── src/
+│   ├── main.tsx                       # Bootstrap React 19 con QueryClient y BrowserRouter
+│   ├── App.tsx                        # Rutas dinámicas /:slug, /plataforma, ErrorBoundary
+│   ├── auth/
+│   │   ├── context/AuthContext.tsx    # Sesión de personal administrativo y barbero
+│   │   └── services/authService.ts
+│   ├── config/
+│   │   └── tenantTheme.ts             # Paletas de temas ('clasico-azul', 'cyber-lime', etc.)
+│   ├── features/
+│   │   ├── negocio/
+│   │   │   ├── context/TenantBrandContext.tsx  # Inyección de tema visual (data-tenant-theme)
+│   │   │   └── pages/ConfiguracionNegocioPage.tsx
+│   │   ├── reservas/
+│   │   │   ├── pages/ReservaClientePage.tsx    # Wizard público de reserva
+│   │   │   ├── pages/ClientePortalPage.tsx     # Portal cliente autenticado
+│   │   │   └── pages/ReservaGestionInvitadoPage.tsx # Gestión de cita vía token hash
+│   │   ├── barberos/                  # Gestión de personal y comisiones
+│   │   ├── servicios/                 # Gestión del catálogo de servicios
+│   │   ├── horarios/                  # Gestión de matriz horaria y bloqueos
+│   │   └── whatsapp/                  # Vinculación QR multi-tenant
+│   ├── pages/
+│   │   ├── Home/                      # Landing pública por barbería (/:slug)
+│   │   │   └── components/LocationSection.tsx  # Mapa OpenStreetMap con modo oscuro y GPS
+│   │   ├── Dashboard/                 # Panel administrativo por sede
+│   │   ├── Plataforma/                # Hub global SaaS (/plataforma y /)
+│   │   └── Login/                     # Inicio de sesión con Google SSO
+│   └── shared/
+│       ├── lib/http/axios.ts          # Clientes Axios duales (apiClient y reservasApiClient)
+│       ├── layout/                    # MainLayout, Header, Sidebar
+│       └── components/                # ProtectedRoute, ErrorBoundary
+```
+
+---
+
 <a id="06-modelo-datos"></a>
 
 <!-- ========================================================================= -->
@@ -370,90 +441,689 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
 
 # 06. Modelo de Datos y Esquema Relacional Multitenant (Prisma)
 
-## 6.1 Diagrama Entidad-Relación Lógico Multitenant
-El modelo de datos se encuentra normalizado en tercera forma normal (3NF), gestionado íntegramente mediante Prisma ORM sobre MySQL/MariaDB con aislamiento por `negocioId` y claves compuestas foráneas.
+## 6.1 Principios del Modelo Multitenant y Aislamiento de Datos
+El modelo de datos se encuentra normalizado en tercera forma normal (3NF), gestionado íntegramente mediante **Prisma ORM 7** sobre MySQL 8 / MariaDB 11.4:
+1. **Desacoplamiento de Identidad Global:** La tabla `Usuario` representa a la persona física en la plataforma (nombre, email, googleId). **No pertenece a ningún negocio**.
+2. **Membresías por Sede:** Los roles operativos pertenecen al negocio. `Administrador` y `Barbero` vinculan a un `Usuario` con un `Negocio` mediante claves únicas compuestas `@@unique([negocioId, usuarioId])`. Una persona puede ser administradora en una sede, barbero en otra y cliente en una tercera sin conflicto alguno.
+3. **Claves Foráneas Compuestas para Blindaje de Inquilinos:** Relaciones como `BarberoServicio` y `Reservation` validan con llaves compuestas `(negocioId, id)` a nivel del motor de base de datos, impidiendo que una entidad de una sede se vincule con entidades de otra.
+4. **Persistencia de Marca y Temas:** `PerfilNegocio` implementa relación 1:1 con `Negocio`, soportando `temaKey` ('clasico-azul', 'cyber-lime', etc.), coordenadas GPS (`latitud`, `longitud` con precisión `Decimal(10,7)`) e imágenes de marca.
+5. **Concurrencia y Citas:** `Reservation` utiliza la columna generada en base de datos `slotActivo` (1 si ocupa la franja, NULL si CANCELLED) con un índice único `@@unique([barberoId, date, startTime, slotActivo])` para permitir re-reserva tras cancelaciones sin colisión de slots.
 
+---
+
+## 6.2 Diagrama Entidad-Relación Lógico
 ```
-Negocio (1) ──── (0..1) PerfilNegocio
-Negocio (1) ──── (N) Administrador (N) ──── (1) Usuario (Global)
-Negocio (1) ──── (N) Barbero       (N) ──── (1) Usuario (Global)
+Negocio (1) ──── (0..1) PerfilNegocio (1:1 con temaKey, coordenadas y branding)
+Negocio (1) ──── (N) Administrador (N) ──── (1) Usuario (Identidad Global)
+Negocio (1) ──── (N) Barbero       (N) ──── (1) Usuario (Identidad Global)
 Negocio (1) ──── (N) Servicio      (N) ──── (N) Barbero (vía BarberoServicio)
-Negocio (1) ──── (N) HorarioSemanal
-Negocio (1) ──── (N) BloqueoHorario
-Negocio (1) ──── (N) Cliente       (N) ──── (0..1) Usuario (Global)
-Negocio (1) ──── (N) Reserva
-Negocio (1) ──── (N) WhatsAppPlantilla
-Negocio (1) ──── (0..1) ConfiguracionNegocio
+Negocio (1) ──── (N) BarberWeeklySlot (Franjas semanales por barbero)
+Negocio (1) ──── (N) BarberScheduleBlock (Bloqueos y descansos temporales)
+Negocio (1) ──── (N) GeneralClosure (Cierres generales festivos por sede)
+Negocio (1) ──── (N) Cliente       (N) ──── (0..1) Usuario (Identidad Global)
+Negocio (1) ──── (N) Reservation   (Citas con token criptográfico y slotActivo)
+Negocio (1) ──── (N) WhatsAppPlantilla (Plantillas personalizadas por sede o globales)
+Negocio (1) ──── (0..1) ConfiguracionNegocio (Políticas de cancelación y no-show)
 ```
 
 ---
 
-## 6.2 Entidades Principales del Esquema (`schema.prisma`)
+## 6.3 Archivo Canónico Completo: `prisma/schema.prisma`
+Cualquier agente de IA o desarrollador que clone o reconstruya el proyecto **DEBE utilizar este archivo exacto** sin modificar nombres de modelos, mapeos ni atributos:
 
-### 1. `Negocio` y `PerfilNegocio` (Núcleo Multi-Tenant)
-* **`Negocio` (Global):**
-  * `id` (Int, PK, autoincrement)
-  * `nombre` (String, VarChar 120)
-  * `slug` (String, Unique, VarChar 80) — Identificador de URL y subdominio
-  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
-  * `zonaHoraria` (String, VarChar 50, default 'America/Bogota')
-  * `creadoEn`, `actualizadoEn` (DateTime)
-* **`PerfilNegocio` (1:1 con Negocio):**
-  * `id`, `negocioId` (Int, Unique, FK ➔ Negocio)
-  * `frasePrincipal` (String?, VarChar 200) — Lema o descriptor
-  * `temaKey` (String?, VarChar 50, default 'clasico-azul') — Paleta visual activa
-  * `direccion`, `ciudad`, `departamento`, `referencia` (String?)
-  * `latitud`, `longitud` (Decimal 10,7) — Coordenadas canónicas para radar y mapas
-  * `faviconUrl`, `bannerUrl`, `logoBlancoUrl`, `logoNegroUrl` (String?, VarChar 500)
+```prisma
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
 
-### 2. `Usuario` (Identidad Personal Global)
-* Representa a la persona física en la plataforma. **No pertenece a ningún negocio en particular**:
-* `id` (Int, PK, autoincrement)
-* `email` (String, Unique)
-* `googleId` (String?, Unique)
-* `nombre`, `apellido` (String)
-* `rol` (Enum: `SUPERADMIN`, `ADMINISTRADOR`, `BARBERO`, `PERSONAL`)
-* `estado` (Enum: `ACTIVO`, `INACTIVO`)
+datasource db {
+  provider = "mysql"
+}
 
-### 3. `Administrador` y `Barbero` (Membresías por Sede)
-* **`Administrador`:**
-  * `id`, `usuarioId` (FK ➔ Usuario), `negocioId` (FK ➔ Negocio)
-  * `superadmin` (Boolean, default false) — Otorga facultades de Superadmin en ESTA sede
-  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
-  * **Restricción de Membresía:** `@@unique([negocioId, usuarioId])`
-* **`Barbero`:**
-  * `id`, `usuarioId` (FK ➔ Usuario), `negocioId` (FK ➔ Negocio)
-  * `porcentajeComision` (Decimal 5,2)
-  * `fotoUrl` (String?)
-  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
-  * **Restricción de Membresía:** `@@unique([negocioId, usuarioId])`
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+}
 
-### 4. `Servicio` y `BarberoServicio`
-* **`Servicio`:** `id`, `negocioId` (FK ➔ Negocio), `nombre` (VarChar 100), `descripcion`, `precio` (Decimal 10,2), `duracionMinutos` (Int), `fotoUrl`, `estado`. Restricción: `@@unique([negocioId, nombre])`.
-* **`BarberoServicio`:** `barberoId` (FK), `servicioId` (FK), `negocioId` (FK). Llave primaria compuesta `@@id([barberoId, servicioId])` y relaciones foráneas compuestas con validación de que barbero y servicio pertenezcan al mismo tenant.
+/// Clasificación GLOBAL de la persona en la plataforma. NO es una fuente de
+/// privilegios.
+///
+/// - `SUPERADMIN`: valor HEREDADO, conservado solo por compatibilidad de datos
+///   y de contrato. En este SaaS **NO existe un SUPERADMIN global de
+///   plataforma**: el carácter SUPERADMIN es una MEMBRESÍA de negocio y vive
+///   en `Administrador.superadmin`, en la fila `(negocioId, usuarioId)`, con
+///   alcance exclusivo a ESE negocio.
+/// - `PERSONAL`: persona de la plataforma sin carácter de plataforma. Sus
+///   roles EFECTIVOS (administrador/barbero/superadmin) NO se derivan de esta
+///   columna, sino de sus perfiles operativos (`Administrador` / `Barbero`) en
+///   el negocio concreto.
+///
+/// ESTA COLUMNA NO CONCEDE NINGÚN PRIVILEGIO POR SÍ SOLA: la autorización la
+/// resuelven la membresía activa del negocio del contexto y el guard de roles
+/// (`RolesGuard`), que solo lee los roles derivados de las membresías.
+///
+/// Los antiguos valores `ADMINISTRADOR` y `BARBERO` se migraron a `PERSONAL`
+/// en la Fase 8: describían el modelo de negocio único, no el modelo
+/// multitenant, y ya no se conservaban como fuente autorizante.
+enum RolUsuario {
+  SUPERADMIN
+  PERSONAL
+}
 
-### 5. `HorarioSemanal` y `BloqueoHorario`
-* **`HorarioSemanal` (`BarberWeeklySlot`):** `id`, `barberoId`, `dayOfWeek` (0-6), `startTime`, `endTime`, `negocioId`. Restricción: `@@unique([negocioId, barberoId, dayOfWeek, startTime])`.
-* **`BloqueoHorario` (`BarberScheduleBlock`):** `id`, `barberoId`, `date` (Date), `startTime`, `endTime`, `motivo`, `status`, `negocioId`.
+/// Estado de un negocio (tenant) dentro de la plataforma.
+/// `INACTIVO` permite desactivar un negocio sin borrar su histórico:
+/// las reservas, clientes y servicios existentes se conservan.
+enum EstadoNegocio {
+  ACTIVO
+  INACTIVO
+}
 
-### 6. `Cliente` y `Reserva` (`Reservation`)
-* **`Cliente`:**
-  * `id`, `negocioId` (FK ➔ Negocio), `usuarioId` (FK opcional ➔ Usuario), `googleId` (String?)
-  * `nombre`, `apellido`, `email`, `telefono`
-  * **Unicidad Multitenant:** `@@unique([negocioId, googleId])`, `@@unique([negocioId, usuarioId])`, `@@unique([negocioId, id])`.
-* **`Reserva` (`Reservation`):**
-  * `id`, `negocioId` (FK ➔ Negocio), `barberoId`, `servicioId`, `clienteId`
-  * `date` (Date), `startTime`, `endTime`
-  * `precio` (Decimal: congelado al momento del agendamiento)
-  * `status` (Enum: `PENDIENTE`, `CONFIRMADA`, `COMPLETADA`, `CANCELADA`, `NO_SHOW`)
-  * `tokenGestion` (String?, Unique: hash seguro para cancelar o consultar)
-  * `gestionTokenCifrado` (String?: copia cifrada reversible para idempotencia)
-  * `tokenExpiracion` (DateTime?)
-  * **Índices de Concurrencia:** `@@unique([negocioId, barberoId, date, startTime, slotActivo])`.
+/// Negocio (barbería) dentro de la plataforma SaaS.
+///
+/// Es la entidad tenant: cada registro operativo (clientes, barberos,
+/// servicios, reservas, horarios, configuraciones) pertenece a un negocio.
+/// `Usuario` es global (identidad de la persona en la plataforma) y sus
+/// perfiles operativos son los que se asocian a un negocio.
+///
+/// `slug` es el identificador PÚBLICO y estable con el que se resuelve el
+/// negocio en cada petición (subdominio o cabecera `X-Negocio-Slug`).
+/// No debe contener información sensible: es visible en URLs y logs.
+///
+/// `onDelete: Restrict`: eliminar un negocio con datos exige una operación
+/// explícita; la vía prevista para "retirar" una barbería es `estado =
+/// INACTIVO`, que conserva el histórico.
+model Negocio {
+  id          Int           @id @default(autoincrement())
+  slug        String        @unique @db.VarChar(63)
+  nombre      String        @db.VarChar(150)
+  estado      EstadoNegocio @default(ACTIVO)
+  zonaHoraria String        @default("America/Bogota") @db.VarChar(64)
+  creadoEn    DateTime      @default(now())
+  actualizadoEn DateTime    @updatedAt
 
-### 7. `WhatsAppPlantilla` y `ConfiguracionNegocio`
-* **`WhatsAppPlantilla`:** Plantillas de confirmación y recordatorio personalizadas por sede (`@@unique([negocioId, tipo])`).
-* **`ConfiguracionNegocio`:** Políticas de cancelación, tolerancia de no-show y parámetros operativos por sede (`@@unique([negocioId])`).
+  // Relaciones inversas: los perfiles operativos pertenecen a un negocio.
+  administradores   Administrador[]
+  barberos          Barbero[]
+  clientes          Cliente[]
+  servicios         Servicio[]
+  barberoServicios  BarberoServicio[]
+  reservas          Reservation[]
+  franjasSemanales  BarberWeeklySlot[]
+  bloqueosHorario   BarberScheduleBlock[]
+  cierresGenerales  GeneralClosure[]
+  configuraciones   ConfiguracionNegocio[]
+  plantillasWhatsApp WhatsAppPlantilla[]
+  /// Perfil público de marca y ubicación (relación 1:1).
+  perfil            PerfilNegocio?
+
+  @@map("negocios")
+}
+
+/// Perfil PÚBLICO de un negocio: identidad visual y ubicación.
+///
+/// RELACIÓN 1:1 CON `Negocio`
+/// - `negocioId` es ÚNICO: como máximo un perfil por barbería.
+/// - NO duplica el nombre ni el slug del negocio: se leen de `Negocio`.
+///
+/// POR QUÉ UN MODELO PROPIO Y NO `ConfiguracionNegocio`
+/// `ConfiguracionNegocio` es un almacén CLAVE/VALOR de políticas OPERATIVAS
+/// (antelación de cancelación, tolerancia de NO_SHOW): el valor es un texto con
+/// un discriminador de tipo. La marca y la ubicación son CONTENIDO PÚBLICO
+/// ESTRUCTURADO, con tipado, longitudes y coordenadas propias: meterlò en un
+/// almacén clave/valor obligaría a serializar y a validar a mano, y haría que
+/// un campo tan público dependiera de una clave de configuración.
+///
+/// TODOS LOS CAMPOS SON NULABLES: una barbería puede existir sin perfil
+/// completo mientras termina de configurarlo. La ausencia de un perfil NO es
+/// un error.
+///
+/// LAS IMÁGENES SON REFERENCIAS, NO ARCHIVOS: `faviconUrl`, `bannerUrl`,
+/// `logoBlancoUrl` y `logoNegroUrl` guardan RUTAS o URLs. En la base de datos
+/// NO se almacenan bytes, base64 ni archivos completos. La carga física de
+/// archivos es una fase posterior.
+///
+/// LA URL DEL MAPA NO SE GUARDA: se deriva de `latitud`/`longitud`, que son la
+/// única fuente de verdad. Así no puede quedar desincronizada.
+model PerfilNegocio {
+  id        Int     @id @default(autoincrement())
+  /// Negocio al que pertenece el perfil. UNICO: un perfil por barbería.
+  negocioId Int     @unique
+
+  /// Frase principal de la marca (lema o descriptor corto).
+  frasePrincipal String? @db.VarChar(200)
+
+  /// Identificador del preset de tema visual ('clasico-azul', 'cyber-lime', etc.)
+  temaKey String? @default("clasico-azul") @db.VarChar(50)
+
+  // --- Identidad visual: REFERENCIAS a archivos (nunca binarios) ---
+  faviconUrl    String? @db.VarChar(500)
+  bannerUrl     String? @db.VarChar(500)
+  logoBlancoUrl String? @db.VarChar(500)
+  logoNegroUrl  String? @db.VarChar(500)
+
+  // --- Ubicación ---
+  direccion    String? @db.VarChar(200)
+  ciudad       String? @db.VarChar(120)
+  departamento String? @db.VarChar(120)
+  /// Referencia opcional para orientarse ("Local 2, junto a la panadería").
+  referencia String? @db.VarChar(200)
+  /// Coordenadas en grados decimales. `Decimal(10,7)` aporta ~1 cm de
+  /// precisión y cubre el rango de longitud (±180) sin desbordar.
+  latitud  Decimal? @db.Decimal(10, 7)
+  longitud Decimal? @db.Decimal(10, 7)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@map("perfiles_negocio")
+}
+
+/// Identidad GLOBAL de la persona en la plataforma.
+///
+/// No pertenece a ningún negocio: es la persona. Sus permisos dentro de una
+/// barbería vienen de sus perfiles (`Administrador` / `Barbero`), no de esta
+/// tabla. Por eso las relaciones hacia `Usuario` NO son compuestas: el usuario
+/// es global y solo el PERFIL es por negocio.
+///
+/// Una persona puede tener VARIOS perfiles (uno por barbería en la que
+/// opera): las relaciones con los perfiles son uno-a-muchos.
+model Usuario {
+  id         Int           @id @default(autoincrement())
+  googleId   String?       @unique
+  email      String        @unique
+  nombre     String
+  apellido   String
+  /// Valor GLOBAL heredado del modelo de negocio único. **NO concede ningún
+  /// privilegio**: los roles efectivos se derivan de las MEMBRESÍAS
+  /// (`Administrador` / `Barbero`) de la persona en el negocio del contexto.
+  /// Un `SUPERADMIN` aquí NO significa superadmin de plataforma: el carácter
+  /// SUPERADMIN vive en `Administrador.superadmin` (membresía por negocio).
+  /// Se conserva por compatibilidad de datos y de contrato, y es
+  /// INFORMATIVO.
+  rol        RolUsuario
+  estado     EstadoUsuario @default(ACTIVO)
+
+  administradores Administrador[]
+  barberos       Barbero[]
+  clientes       Cliente[]
+}
+
+/// Perfil de administrador de un negocio.
+///
+/// `usuarioId` es ÚNICO POR NEGOCIO: la misma persona puede ser administradora
+/// de varias barberías (y de ninguna).
+///
+/// `superadmin` es el CARÁCTER de la membresía, no un atributo de la
+/// persona: `true` significa SUPERADMIN **de este negocio** y `false`
+/// ADMINISTRADOR de este negocio. El alcance es siempre el negocio de la fila:
+/// en este SaaS NO existe un superadmin de plataforma ni una sesión de
+/// plataforma. La columna es aditiva y no promueve a nadie: las membresías
+/// existentes siguen siendo ADMINISTRADOR.
+model Administrador {
+  id        Int           @id @default(autoincrement())
+  usuarioId Int
+  /// Negocio al que pertenece el perfil. OBLIGATORIO: un perfil sin
+  /// negocio no puede existir.
+  negocioId Int
+  estado    EstadoUsuario @default(ACTIVO)
+  /// SUPERADMIN de ESTE negocio (`true`) o ADMINISTRADOR (`false`).
+  /// La autorización depende exclusivamente de esta membresía activa y del
+  /// contexto del negocio: `Usuario.rol` no concede ningún privilegio.
+  superadmin Boolean @default(false)
+
+  usuario Usuario @relation(fields: [usuarioId], references: [id])
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@unique([negocioId, usuarioId])
+  /// Destino de las claves foráneas compuestas: impide que un registro de
+  /// este negocio apunte al perfil de OTRO negocio.
+  @@unique([negocioId, id])
+  @@index([negocioId])
+}
+
+/// Perfil de barbero de un negocio.
+///
+/// `usuarioId` es ÚNICO POR NEGOCIO: la misma persona puede ser barbero en
+/// varias barberías (y de ninguna).
+model Barbero {
+  id                Int           @id @default(autoincrement())
+  usuarioId         Int
+  /// Negocio al que pertenece el perfil. OBLIGATORIO.
+  negocioId         Int
+  telefono          String
+  porcentajeComision Decimal       @db.Decimal(5, 2)
+  fotoUrl           String?       @db.VarChar(500)
+  estado            EstadoUsuario @default(ACTIVO)
+
+  usuario   Usuario         @relation(fields: [usuarioId], references: [id])
+  negocio   Negocio         @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+  servicios BarberoServicio[] // <--- Conexión con la tabla intermedia
+
+  weeklySlots  BarberWeeklySlot[]
+  blocks       BarberScheduleBlock[]
+  reservations Reservation[]
+
+  @@unique([negocioId, usuarioId])
+  /// Destino de las claves foráneas compuestas.
+  @@unique([negocioId, id])
+  @@index([negocioId])
+}
+
+/// Persona que reserva. Unifica cliente invitado y cliente autenticado (D-01/D-02):
+/// - Invitado: `usuarioId = NULL` y contacto directo (`nombre` obligatorio; D-02
+///   exige como mínimo nombre y número de contacto, por eso `apellido`/`telefono`
+///   son opcionales en el modelo, aunque el flujo de invitado valide el teléfono).
+/// - Autenticado con Google (HE-04, Modalidad B): la identidad estable es
+///   el `googleId` (el `sub` del ID Token de Google). Es ÚNICO POR NEGOCIO: la
+///   misma cuenta de Google puede tener fichas independientes (e historiales de
+///   reservas separados) en negocios distintos.
+/// - `usuarioId` es un vínculo heredado opcional, único POR NEGOCIO.
+/// La autenticación de clientes NO depende de él ni crea usuarios de personal; se
+/// conserva por compatibilidad con el historial existente.
+/// `onDelete: SetNull`: borrar un usuario no elimina el historial de reservas.
+model Cliente {
+  id        Int     @id @default(autoincrement())
+  nombre    String
+  apellido  String?
+  telefono  String?
+  googleId  String?
+  email     String?
+  usuarioId Int?
+  /// Negocio al que pertenece la ficha del cliente. OBLIGATORIO.
+  negocioId Int
+
+  usuario      Usuario?      @relation(fields: [usuarioId], references: [id], onDelete: SetNull)
+  negocio      Negocio       @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+  reservations Reservation[]
+
+  /// La misma identidad de Google puede tener una ficha en cada negocio.
+  @@unique([negocioId, googleId])
+  /// El mismo usuario puede tener ficha de cliente en varios negocios.
+  @@unique([negocioId, usuarioId])
+  /// Destino de las claves foráneas compuestas.
+  @@unique([negocioId, id])
+  @@index([negocioId])
+}
+
+enum EstadoServicio {
+  ACTIVO
+  INACTIVO
+}
+
+/// Servicio del catálogo de un negocio.
+///
+/// `nombre` es ÚNICO POR NEGOCIO: dos barberías pueden tener un servicio
+/// llamado igual, pero un mismo negocio no puede repetirlo.
+model Servicio {
+  id              Int            @id @default(autoincrement())
+  nombre          String         @db.VarChar(100)
+  descripcion     String?        @db.Text
+  precio          Decimal        @db.Decimal(10, 2)
+  duracionMinutos Int            // Fundamental para calcular los bloques de las citas (ej. 30, 45, 60 min)
+  fotoUrl         String?        @db.VarChar(500) // Para el catálogo visual de clientes
+  estado          EstadoServicio @default(ACTIVO)
+  /// Negocio dueño del catálogo y de los precios. OBLIGATORIO.
+  negocioId       Int
+  creadoEn        DateTime       @default(now())
+  actualizadoEn   DateTime       @updatedAt
+  barberos        BarberoServicio[] // <--- Conexión con la tabla intermedia
+  reservations    Reservation[]
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@unique([negocioId, nombre])
+  /// Destino de las claves foráneas compuestas.
+  @@unique([negocioId, id])
+  @@index([negocioId])
+}
+
+// Tabla intermedia explícita para la relación muchos a muchos
+//
+// Las relaciones son COMPUESTAS: el barbero y el servicio deben pertenecer al
+// MISMO negocio que el vínculo. La base de datos lo impide, no la aplicación.
+model BarberoServicio {
+  barberoId  Int
+  servicioId Int
+  /// Negocio al que pertenece el vínculo barbero-servicio. OBLIGATORIO.
+  negocioId  Int
+  creadoEn   DateTime @default(now())
+
+  barbero  Barbero  @relation(fields: [negocioId, barberoId], references: [negocioId, id], onDelete: Cascade)
+  servicio Servicio @relation(fields: [negocioId, servicioId], references: [negocioId, id], onDelete: Cascade)
+  negocio  Negocio  @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@id([barberoId, servicioId]) // Llave primaria compuesta
+  @@index([negocioId])
+}
+
+// ---------------------------------------------------------------------------
+// HE-08: horarios, bloqueos y cierres generales
+// ---------------------------------------------------------------------------
+
+/// Día de la semana del horario semanal. Definido una sola vez y reutilizado.
+enum WeekDay {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+/// Ciclo de vida de un bloqueo. Persiste historial: no hay borrado físico.
+enum ScheduleBlockStatus {
+  ACTIVE
+  REACTIVATED
+  CANCELLED
+}
+
+/// Motivo opcional de un bloqueo.
+enum ScheduleBlockReason {
+  PERSONAL
+  MEDICAL
+  VACATION
+  OTHER
+}
+
+/// Cada registro representa una franja de 60 minutos del horario semanal.
+/// La unicidad (barbero, día, hora inicial) ya actúa como índice para consultas
+/// por barbero/semana; no se agrega un índice redundante sobre el prefijo.
+model BarberWeeklySlot {
+  id        Int      @id @default(autoincrement())
+  barberoId Int
+  /// Negocio al que pertenece la franja. OBLIGATORIO.
+  negocioId Int
+  dayOfWeek WeekDay
+  startTime String   @db.VarChar(5) // HH:mm
+  endTime   String   @db.VarChar(5) // HH:mm
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Relación COMPUESTA: la franja solo puede apuntar al perfil de barbero del
+  /// mismo negocio.
+  barbero Barbero @relation(fields: [negocioId, barberoId], references: [negocioId, id], onDelete: Cascade)
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@unique([barberoId, dayOfWeek, startTime])
+  @@index([negocioId])
+  @@map("barber_weekly_slots")
+}
+
+/// Periodos de no disponibilidad y bloqueos temporales (HE08-HU-03/HU-05/HU-06).
+/// `date` es fecha de calendario (@db.Date): ver nota de zona horaria más abajo.
+/// `reactivatedBy` guarda el identificador del usuario responsable sin imponer
+/// integridad referencial (decisión alineada con la spec §7.4).
+model BarberScheduleBlock {
+  id            Int                  @id @default(autoincrement())
+  barberoId     Int
+  /// Negocio al que pertenece el bloqueo. OBLIGATORIO.
+  negocioId     Int
+  date          DateTime             @db.Date
+  startTime     String               @db.VarChar(5) // HH:mm
+  endTime       String               @db.VarChar(5) // HH:mm
+  reason        ScheduleBlockReason?
+  notes         String?              @db.Text
+  status        ScheduleBlockStatus  @default(ACTIVE)
+  reactivatedAt DateTime?
+  reactivatedBy Int?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  /// Relación COMPUESTA: el bloqueo solo puede apuntar al perfil de barbero del
+  /// mismo negocio.
+  barbero Barbero @relation(fields: [negocioId, barberoId], references: [negocioId, id], onDelete: Cascade)
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@index([barberoId, date, status])
+  @@index([negocioId])
+  @@map("barber_schedule_blocks")
+}
+
+/// Cierre general (HE-08 solo lo consulta; su CRUD no pertenece a este alcance).
+/// `allDay = true` cubre el día completo; con `false`, startTime/endTime son
+/// obligatorios. Esa consistencia condicional se valida en DTO/servicio, no en
+/// Prisma (no es una restricción portable).
+model GeneralClosure {
+  id        Int      @id @default(autoincrement())
+  /// Negocio al que aplica el cierre. OBLIGATORIO: un cierre sin negocio
+  /// aplicaría a TODOS los negocios de la plataforma.
+  negocioId Int
+  date      DateTime @db.Date
+  startTime String?  @db.VarChar(5) // HH:mm
+  endTime   String?  @db.VarChar(5) // HH:mm
+  allDay    Boolean  @default(false)
+  reason    String   @db.Text
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  @@index([date, active])
+  @@index([negocioId])
+  @@map("general_closures")
+}
+
+// ---------------------------------------------------------------------------
+// HE-04: reservas (subconjunto de persistencia aprobado)
+// ---------------------------------------------------------------------------
+
+/// Ciclo de vida de una reserva. Política de ocupación compartida con HE-08
+/// (ver `src/modules/horarios/ports/proveedor-reservas-activas.port.ts`): todo
+/// estado distinto de `CANCELLED` ocupa la franja; `CANCELLED` la libera.
+/// `NO_SHOW` (cliente que no asistió) también ocupa, igual que `COMPLETED`.
+/// Los valores definitivos quedan sujetos a D-04 (política de estados con HE-06).
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+/// Una fila por reserva. Sin borrado físico: se cambia de estado, igual que
+/// `BarberScheduleBlock`, para conservar historial y permitir re-reservar la
+/// misma franja tras cancelar.
+///
+/// Alcance: campos suficientes para crear/asignar una reserva (HU-04) y para que
+/// HE-08 detecte ocupación de franja. `precioReservado` conserva el precio del
+/// `Servicio` calculado en el servidor al crear la reserva, para que las
+/// consultas de HU-06/HU-07 no cambien si el catálogo sube de precio después.
+/// Queda `NULL` para reservas creadas antes de que existiera esta columna (no se
+/// inventan snapshots retroactivos). El descuento y la idempotencia siguen fuera hasta
+/// resolver D-07/D-08. La duración no se persiste: se resuelve del servicio
+/// vigente. El precio y la duración NUNCA se confían al cliente.
+///
+/// Concurrencia (D-17): la tabla incluye una columna generada `slotActivo`
+/// (`1` si el estado ocupa, `NULL` si `CANCELLED`) y un índice UNIQUE
+/// `(barberoId, date, startTime, slotActivo)`. Al ser `NULL` distinto de `NULL`
+/// en un índice único de MySQL/MariaDB, pueden coexistir varias reservas
+/// canceladas por franja, pero solo una activa; esto habilita la re-reserva.
+/// `slotActivo` NO se declara aquí porque Prisma no expresa columnas generadas:
+/// se crea en la migración SQL. Prisma Client funciona con o sin ella.
+///
+/// AISLAMIENTO (Fase 8): barbero, servicio y cliente se referencian con
+/// CLAVES FORÁNEAS COMPUESTAS `(negocioId, id)`: la base de datos impide que
+/// una reserva combine entidades de negocios distintos.
+model Reservation {
+  id         Int               @id @default(autoincrement())
+  barberoId  Int
+  servicioId Int
+  clienteId  Int
+  date       DateTime          @db.Date // fecha de calendario (America/Bogota)
+  dayOfWeek  WeekDay           // derivada de `date`; desnormalizada para la consulta semanal
+  startTime  String            @db.VarChar(5) // HH:mm
+  endTime    String            @db.VarChar(5) // HH:mm
+  status     ReservationStatus @default(PENDING)
+  // Precio del servicio aplicado al crear la reserva (calculado en el servidor).
+  // `NULL` para reservas creadas antes de que existiera esta columna.
+  precioReservado Decimal?     @db.Decimal(10, 2)
+  // Hash del token criptográfico de gestión para reservas de invitados.
+  // Permite modificar o cancelar la reserva sin requerir inicio de sesión.
+  // `NULL` para reservas creadas por clientes autenticados o anteriores a esta columna.
+  //
+  // El hash es la vía de VALIDACIÓN (comparación en tiempo constante, sin
+  // descifrar nada). Se conserva además una copia CIFRADA del token para que
+  // un reintento idempotente pueda reproducir EXACTAMENTE la respuesta
+  // original: así la idempotencia nunca invalida una credencial ya entregada
+  // ni devuelve un token distinto al que el cliente ya tiene.
+  // NUNCA se guarda el token en texto claro.
+  gestionTokenHash String?     @db.VarChar(255)
+  // Token de gestión CIFRADO (AES-256-GCM). `NULL` en las reservas de
+  // cliente autenticado y en las creadas antes de esta columna.
+  gestionTokenCifrado String? @db.VarChar(255)
+  // Control de recordatorio automático por WhatsApp (2 horas antes)
+  recordatorioEnviado Boolean  @default(false)
+  /// Negocio al que pertenece la reserva. OBLIGATORIO.
+  negocioId  Int
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  // Columna generada a nivel de base de datos: `1` si el estado ocupa la
+  // franja, `NULL` si `CANCELLED` (ver migración). Se declara como `@db.TinyInt`
+  // para que Prisma conozca la columna y su índice y no genere drift, aunque la
+  // expresión generada solo exista en SQL. Prisma Client la expone como lectura.
+  slotActivo Int? @db.TinyInt
+
+  barbero  Barbero  @relation(fields: [negocioId, barberoId], references: [negocioId, id], onDelete: Restrict)
+  servicio Servicio @relation(fields: [negocioId, servicioId], references: [negocioId, id], onDelete: Restrict)
+  cliente  Cliente  @relation(fields: [negocioId, clienteId], references: [negocioId, id], onDelete: Restrict)
+  negocio  Negocio @relation(fields: [negocioId], references: [id], onDelete: Restrict)
+
+  // Consulta de ocupación por fecha concreta (método 1 del puerto HE-08).
+  @@index([barberoId, date, status])
+  // Consulta de ocupación recurrente sin fecha (método 2 del puerto HE-08).
+  @@index([barberoId, dayOfWeek, status])
+  // Enlaces de la reserva: servicios y reservas propias de un cliente.
+  @@index([servicioId])
+  @@index([clienteId])
+  // Filtro por negocio (aislamiento multitenant).
+  @@index([negocioId])
+  // Unicidad de franja ocupada: `slotActivo` es NULL para estados no ocupantes,
+  // y NULL no colisiona en MySQL/MariaDB, de modo que varias reservas canceladas
+  // coexisten y solo una activa por franja (re-reserva tras CANCELLED).
+  @@unique([barberoId, date, startTime, slotActivo])
+  /// Clave de idempotencia del intento de reserva (cabecera `Idempotency-Key`).
+  /// NULA para las reservas históricas y para las creadas sin cabecera de
+  /// idempotencia. La unicidad es COMPUESTA por negocio: la misma clave en dos
+  /// barberías son dos intentos distintos, y una clave nunca permite acceder a
+  /// una reserva de otro negocio.
+  idempotencyKey String? @db.VarChar(64)
+  @@unique([negocioId, idempotencyKey])
+  @@map("reservations")
+}
+
+// ---------------------------------------------------------------------------
+// Plantillas de mensajes dinámicos de WhatsApp
+// ---------------------------------------------------------------------------
+/// Plantilla de mensaje de WhatsApp.
+///
+/// ALCANCE (HU-11): la plantilla puede ser GLOBAL de plataforma
+/// (`negocioId = NULL`) o propia de un negocio (`negocioId = X`).
+///
+/// REGLA DE RESOLUCIÓN: la plantilla DEL NEGOCIO tiene prioridad; si no
+/// existe, se usa la plantilla GLOBAL; si tampoco existe, el texto por defecto
+/// del código. Las filas globales son el VALOR POR DEFECTO de la plataforma
+/// (su propósito es explícito: el texto inicial de una barbería que aún no ha
+/// personalizado sus mensajes) y nunca sustituyen a la de un negocio.
+///
+/// `claveGlobal` es una columna GENERADA (creada en la migración SQL) que
+/// contiene el `tipo` cuando la plantilla es global y `NULL` cuando es de un
+/// negocio. Su índice único garantiza como máximo UNA plantilla global por
+/// tipo: en MySQL/MariaDB los `NULL` de un índice único no colisionan, de
+/// modo que las plantillas de negocio pueden repetirse el tipo que-sea.
+model WhatsAppPlantilla {
+  id      Int     @id @default(autoincrement())
+  tipo    String  @db.VarChar(50) // CONFIRMACION, RECORDATORIO, etc.
+  mensaje String  @db.Text
+  activo  Boolean @default(true)
+  /// Negocio al que pertenece la plantilla. `NULL` = plantilla GLOBAL de
+  /// plataforma.
+  negocioId Int?
+  /// Columna generada: `tipo` si la plantilla es global, `NULL` si es de un
+  /// negocio. Prisma no expresa columnas generadas: se declara para que no
+  /// genere drift, y la expresión solo existe en la migración SQL. Es ÚNICA:
+  /// garantiza como máximo una plantilla global por tipo.
+  claveGlobal String? @unique @db.VarChar(50)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  negocio Negocio? @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([negocioId, tipo])
+  @@index([negocioId])
+  @@map("whatsapp_plantillas")
+}
+
+// ---------------------------------------------------------------------------
+// Configuración funcional del sistema (parámetros almacenados en base de datos)
+// ---------------------------------------------------------------------------
+
+/// Tipos soportados por una configuración funcional. El contenido se guarda como
+/// texto (`valor`) y se valida/parsea según este tipo al leerlo, sin `eval` ni
+/// conversiones inseguras.
+enum TipoConfiguracion {
+  TEXTO
+  NUMERO
+  BOOLEANO
+  JSON
+}
+
+/// Parámetro funcional de la aplicación almacenado en base de datos.
+///
+/// `valor` se guarda como texto para poder representar configuraciones de
+/// cualquier tipo sin perder la capacidad de validarlas: `tipo` indica cómo
+/// interpretar y validar el contenido al leerlo. Los secretos y credenciales NO
+/// se migran aquí: permanecen en variables de entorno.
+model ConfiguracionSistema {
+  id            Int               @id @default(autoincrement())
+  clave         String            @unique @db.VarChar(100)
+  valor         String            @db.Text
+  tipo          TipoConfiguracion @default(TEXTO)
+  descripcion   String?           @db.VarChar(255)
+  editable      Boolean           @default(true)
+  creadoEn      DateTime          @default(now())
+  actualizadoEn DateTime          @updatedAt
+
+  @@map("configuraciones_sistema")
+}
+
+/// Parámetro funcional con ámbito de NEGOCIO (tenant).
+///
+/// Separado de `ConfiguracionSistema` (parámetros globales de plataforma):
+/// aquí viven las políticas operativas de cada barbería, como el plazo de
+/// antelación para cancelar o la tolerancia de NO_SHOW. El nombre de la
+/// clave se reutiliza para todos los negocios, pero el VALOR es propio de
+/// cada uno, y la caché de configuración debe segmentarse por `negocioId`
+/// para que un negocio nunca lea el valor de otro.
+///
+/// La unicidad es por `(negocioId, clave)`: un mismo negocio no puede tener
+/// dos filas con la misma clave, pero dos negocios sí pueden usar la misma
+/// clave con valores distintos.
+model ConfiguracionNegocio {
+  id            Int               @id @default(autoincrement())
+  negocioId     Int
+  clave         String            @db.VarChar(100)
+  valor         String            @db.Text
+  tipo          TipoConfiguracion @default(TEXTO)
+  descripcion   String?           @db.VarChar(255)
+  editable      Boolean           @default(true)
+  creadoEn      DateTime          @default(now())
+  actualizadoEn DateTime          @updatedAt
+
+  negocio Negocio @relation(fields: [negocioId], references: [id], onDelete: Cascade)
+
+  @@unique([negocioId, clave])
+  @@map("configuraciones_negocio")
+}
+
+```
 
 ---
 
@@ -667,7 +1337,130 @@ Negocio (1) ──── (0..1) ConfiguracionNegocio
 
 ---
 
-## 9.3 Formato Estándar de Errores (JSON)
+## 9.3 Payloads JSON Canónicos (DTOs de Entrada y Salida)
+
+Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **DEBE replicar exactamente estos contratos**:
+
+### 1. Alta de Nuevo Tenant: `POST /plataforma/negocios`
+**Request Body:**
+```json
+{
+  "nombre": "Barbería Elite Bogotá",
+  "slug": "barberia-elite-bogota",
+  "zonaHoraria": "America/Bogota",
+  "superadmin": {
+    "nombre": "Carlos",
+    "apellido": "Gómez",
+    "email": "carlos.gomez@gmail.com"
+  }
+}
+```
+**Response Body (201 Created):**
+```json
+{
+  "id": 3,
+  "nombre": "Barbería Elite Bogotá",
+  "slug": "barberia-elite-bogota",
+  "estado": "ACTIVO",
+  "zonaHoraria": "America/Bogota",
+  "superadmin": {
+    "usuarioId": 12,
+    "email": "carlos.gomez@gmail.com",
+    "superadmin": true
+  },
+  "perfil": {
+    "temaKey": "clasico-azul",
+    "latitud": null,
+    "longitud": null
+  }
+}
+```
+
+### 2. Actualización de Marca y Ubicación: `PUT /negocios/perfil`
+*(Requiere cabecera `X-Negocio-Slug: <slug>` y token de administrador).*
+**Request Body:**
+```json
+{
+  "frasePrincipal": "El arte clásico del corte masculino",
+  "temaKey": "cyber-lime",
+  "direccion": "Calle 85 # 14-20",
+  "ciudad": "Bogotá",
+  "departamento": "Cundinamarca",
+  "referencia": "Piso 2, frente al parque",
+  "latitud": 4.6675200,
+  "longitud": -74.0564300
+}
+```
+**Response Body (200 OK):**
+```json
+{
+  "id": 3,
+  "negocioId": 3,
+  "frasePrincipal": "El arte clásico del corte masculino",
+  "temaKey": "cyber-lime",
+  "direccion": "Calle 85 # 14-20",
+  "ciudad": "Bogotá",
+  "departamento": "Cundinamarca",
+  "referencia": "Piso 2, frente al parque",
+  "latitud": "4.6675200",
+  "longitud": "-74.0564300",
+  "updatedAt": "2026-11-02T19:00:00.000Z"
+}
+```
+
+### 3. Agendamiento de Reserva: `POST /reservas`
+*(Requiere cabecera `X-Negocio-Slug: <slug>`).*
+**Request Body (Cliente Invitado):**
+```json
+{
+  "barberoId": 5,
+  "servicioId": 2,
+  "date": "2026-11-10",
+  "startTime": "10:00",
+  "cliente": {
+    "nombre": "Juan",
+    "apellido": "Pérez",
+    "telefono": "+573001234567",
+    "email": "juan.perez@example.com"
+  }
+}
+```
+**Response Body (201 Created):**
+```json
+{
+  "id": 142,
+  "barberoId": 5,
+  "servicioId": 2,
+  "clienteId": 89,
+  "date": "2026-11-10T00:00:00.000Z",
+  "startTime": "10:00",
+  "endTime": "11:00",
+  "status": "CONFIRMED",
+  "precioReservado": "35000.00",
+  "tokenGestion": "a8f3b...9c2d",
+  "mensaje": "Reserva creada exitosamente"
+}
+```
+
+### 4. Consulta de Disponibilidad de Barbero: `GET /usuarios/barberos/:id/disponibilidad?fecha=2026-11-10&servicioId=2`
+**Response Body (200 OK):**
+```json
+{
+  "barberoId": 5,
+  "fecha": "2026-11-10",
+  "franjasDisponibles": [
+    { "startTime": "09:00", "endTime": "10:00", "disponible": true },
+    { "startTime": "10:00", "endTime": "11:00", "disponible": false, "motivo": "OCUPADO" },
+    { "startTime": "11:00", "endTime": "12:00", "disponible": true },
+    { "startTime": "12:00", "endTime": "13:00", "disponible": false, "motivo": "DESCANSO" },
+    { "startTime": "14:00", "endTime": "15:00", "disponible": true }
+  ]
+}
+```
+
+---
+
+## 9.4 Formato Estándar de Errores (JSON)
 ```json
 {
   "statusCode": 403,
@@ -1017,6 +1810,91 @@ Gobernanza dentro de la operativa de las barberías:
   * Módulo HE-09: Cierre financiero diario y liquidación automática de comisiones ganadas por barbero.
   * Módulo HE-10: Configuración de promociones y descuentos por día de la semana.
   * Dashboard gerencial con métricas de ingresos, retención de clientes y horas pico.
+
+---
+
+## 15.3 Guía de Replicación Paso a Paso (Bootstrapping para la IA)
+
+Cualquier agente de IA o ingeniero que reciba este Superprompt **DEBE seguir este orden cronológico para reconstruir el sistema funcionalmente**:
+
+### Paso 1: Configuración de Entornos y Archivos `.env`
+**1. `Barberia-Backend/.env`:**
+```env
+PORT=3000
+NODE_ENV=development
+DATABASE_URL="mysql://root:password@localhost:3306/bd_barberia_multitenant_dev"
+JWT_SECRET="kyrios-secret-key-32-chars-min-length-required"
+JWT_EXPIRATION="8h"
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+FRONTEND_URL="http://localhost:5173"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="alertas@barberia.com"
+SMTP_PASS="app-password-16-chars"
+SMTP_FROM="Alertas Kyrios <alertas@barberia.com>"
+```
+
+**2. `Barberia-Frontend/.env`:**
+```env
+VITE_API_BASE_URL="http://localhost:3000"
+VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+```
+
+---
+
+### Paso 2: Base de Datos y Prisma ORM
+1. Iniciar contenedor de base de datos MySQL 8:
+   ```bash
+   docker run --name mysql-barberia -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=bd_barberia_multitenant_dev -p 3306:3306 -d mysql:8.0
+   ```
+2. Crear archivo `Barberia-Backend/prisma/schema.prisma` copiando exactamente el contenido de la **Sección 06**.
+3. Generar el cliente de Prisma y correr la migración inicial:
+   ```bash
+   cd Barberia-Backend
+   npm install
+   npx prisma generate
+   npx prisma migrate dev --name init_multitenant_schema
+   ```
+
+---
+
+### Paso 3: Construcción del Backend NestJS
+1. Configurar `main.ts` con seguridad perimetral:
+   * `app.use(helmet({ contentSecurityPolicy: false }))` (o configurando CSP que permita OpenStreetMap y Google).
+   * `app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))`.
+   * `app.useGlobalFilters(new AllExceptionsFilter(alertsService))`.
+2. Registrar el middleware de tenant en `app.module.ts`:
+   * Interceptar peticiones y resolver el tenant a partir de la cabecera `X-Negocio-Slug` o subdominio.
+3. Crear los módulos en `src/modules/` según el árbol de la **Sección 05**, implementando los DTOs canónicos de la **Sección 09**.
+4. Ejecutar pruebas unitarias para validar que el aislamiento y la lógica de citas funcionan:
+   ```bash
+   npm run test
+   ```
+
+---
+
+### Paso 4: Construcción del Frontend React 19
+1. Instalar dependencias core:
+   ```bash
+   cd ../Barberia-Frontend
+   npm install react react-dom react-router-dom @tanstack/react-query axios lucide-react bootstrap
+   ```
+2. Crear `src/shared/lib/http/axios.ts` con los dos clientes:
+   * `apiClient`: inyecta `Authorization: Bearer token_barberia_<slug>` y `X-Negocio-Slug: <slug>`.
+   * `reservasApiClient`: inyecta `Authorization: Bearer cliente_token_<slug>`.
+3. Crear `TenantBrandContext.tsx` que lea `temaKey` del perfil y fije el atributo `data-tenant-theme` en `document.documentElement`.
+4. Configurar las rutas en `App.tsx`:
+   * Raíz `/` y `/plataforma` ➔ Directorio global SaaS.
+   * `/:slug` ➔ Landing de la sede con `LocationSection` (OpenStreetMap).
+   * `/:slug/reservar` ➔ Wizard de agendamiento público.
+   * `/:slug/dashboard` ➔ Panel administrativo protegido por membresía.
+
+---
+
+### Paso 5: Verificación End-to-End
+1. Iniciar backend: `npm run start:dev` (puerto 3000).
+2. Iniciar frontend: `npm run dev` (puerto 5173).
+3. Entrar a `http://localhost:5173/plataforma`, crear una barbería de prueba (ej. `demo-barber`) y verificar que se pueda navegar a `http://localhost:5173/demo-barber` con su tema visual y mapa activos.
 
 ---
 

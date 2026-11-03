@@ -57,3 +57,88 @@
   * Módulo HE-09: Cierre financiero diario y liquidación automática de comisiones ganadas por barbero.
   * Módulo HE-10: Configuración de promociones y descuentos por día de la semana.
   * Dashboard gerencial con métricas de ingresos, retención de clientes y horas pico.
+
+---
+
+## 15.3 Guía de Replicación Paso a Paso (Bootstrapping para la IA)
+
+Cualquier agente de IA o ingeniero que reciba este Superprompt **DEBE seguir este orden cronológico para reconstruir el sistema funcionalmente**:
+
+### Paso 1: Configuración de Entornos y Archivos `.env`
+**1. `Barberia-Backend/.env`:**
+```env
+PORT=3000
+NODE_ENV=development
+DATABASE_URL="mysql://root:password@localhost:3306/bd_barberia_multitenant_dev"
+JWT_SECRET="kyrios-secret-key-32-chars-min-length-required"
+JWT_EXPIRATION="8h"
+GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+FRONTEND_URL="http://localhost:5173"
+SMTP_HOST="smtp.gmail.com"
+SMTP_PORT=587
+SMTP_USER="alertas@barberia.com"
+SMTP_PASS="app-password-16-chars"
+SMTP_FROM="Alertas Kyrios <alertas@barberia.com>"
+```
+
+**2. `Barberia-Frontend/.env`:**
+```env
+VITE_API_BASE_URL="http://localhost:3000"
+VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
+```
+
+---
+
+### Paso 2: Base de Datos y Prisma ORM
+1. Iniciar contenedor de base de datos MySQL 8:
+   ```bash
+   docker run --name mysql-barberia -e MYSQL_ROOT_PASSWORD=password -e MYSQL_DATABASE=bd_barberia_multitenant_dev -p 3306:3306 -d mysql:8.0
+   ```
+2. Crear archivo `Barberia-Backend/prisma/schema.prisma` copiando exactamente el contenido de la **Sección 06**.
+3. Generar el cliente de Prisma y correr la migración inicial:
+   ```bash
+   cd Barberia-Backend
+   npm install
+   npx prisma generate
+   npx prisma migrate dev --name init_multitenant_schema
+   ```
+
+---
+
+### Paso 3: Construcción del Backend NestJS
+1. Configurar `main.ts` con seguridad perimetral:
+   * `app.use(helmet({ contentSecurityPolicy: false }))` (o configurando CSP que permita OpenStreetMap y Google).
+   * `app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }))`.
+   * `app.useGlobalFilters(new AllExceptionsFilter(alertsService))`.
+2. Registrar el middleware de tenant en `app.module.ts`:
+   * Interceptar peticiones y resolver el tenant a partir de la cabecera `X-Negocio-Slug` o subdominio.
+3. Crear los módulos en `src/modules/` según el árbol de la **Sección 05**, implementando los DTOs canónicos de la **Sección 09**.
+4. Ejecutar pruebas unitarias para validar que el aislamiento y la lógica de citas funcionan:
+   ```bash
+   npm run test
+   ```
+
+---
+
+### Paso 4: Construcción del Frontend React 19
+1. Instalar dependencias core:
+   ```bash
+   cd ../Barberia-Frontend
+   npm install react react-dom react-router-dom @tanstack/react-query axios lucide-react bootstrap
+   ```
+2. Crear `src/shared/lib/http/axios.ts` con los dos clientes:
+   * `apiClient`: inyecta `Authorization: Bearer token_barberia_<slug>` y `X-Negocio-Slug: <slug>`.
+   * `reservasApiClient`: inyecta `Authorization: Bearer cliente_token_<slug>`.
+3. Crear `TenantBrandContext.tsx` que lea `temaKey` del perfil y fije el atributo `data-tenant-theme` en `document.documentElement`.
+4. Configurar las rutas en `App.tsx`:
+   * Raíz `/` y `/plataforma` ➔ Directorio global SaaS.
+   * `/:slug` ➔ Landing de la sede con `LocationSection` (OpenStreetMap).
+   * `/:slug/reservar` ➔ Wizard de agendamiento público.
+   * `/:slug/dashboard` ➔ Panel administrativo protegido por membresía.
+
+---
+
+### Paso 5: Verificación End-to-End
+1. Iniciar backend: `npm run start:dev` (puerto 3000).
+2. Iniciar frontend: `npm run dev` (puerto 5173).
+3. Entrar a `http://localhost:5173/plataforma`, crear una barbería de prueba (ej. `demo-barber`) y verificar que se pueda navegar a `http://localhost:5173/demo-barber` con su tema visual y mapa activos.
