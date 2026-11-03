@@ -1,5 +1,6 @@
-# SUPERPROMPT BACKEND - KYRIOS BARBER SAAS (NestJS + Prisma + MySQL)
-> **Especificación especializada para Backend, Base de Datos, Aislamiento de Inquilinos, Seguridad OWASP y Contratos de API.**
+# SUPERPROMPT BACKEND - KYRIOS BARBER SAAS
+
+> **Especificación especializada para Backend (NestJS 11 + Prisma ORM 7 + MySQL 8 + Seguridad OWASP).**
 
 > **ESTADO DE LA ESPECIFICACIÓN: ESPECIFICACIÓN VIVA (LIVING SPECIFICATION)**
 > Este documento representa con fidelidad milimétrica el estado del sistema hasta la fase actual y continúa evolucionando activamente a medida que se completan los hitos del roadmap y las siguientes fases de desarrollo.
@@ -12,19 +13,17 @@
 ## Índice de Contenidos
 
 - [00. Instrucciones Ia](#00-instrucciones-ia)
-- [01. Contexto Problema](#01-contexto-problema)
-- [02. Alcance](#02-alcance)
-- [03. Roles Permisos](#03-roles-permisos)
-- [04. Stack Tecnologico](#04-stack-tecnologico)
-- [05. Arquitectura Patrones](#05-arquitectura-patrones)
-- [06. Modelo Datos](#06-modelo-datos)
-- [08. Requisitos No Funcionales](#08-requisitos-no-funcionales)
-- [09. Api Contratos](#09-api-contratos)
-- [10. Integraciones](#10-integraciones)
-- [12. Pruebas](#12-pruebas)
-- [13. Documentacion](#13-documentacion)
-- [14. Ia Responsable](#14-ia-responsable)
-- [15. Plan Ejecucion](#15-plan-ejecucion)
+- [01. Contexto Alcance](#01-contexto-alcance)
+- [02. Roles Permisos Rbac](#02-roles-permisos-rbac)
+- [03. Stack Tecnologico](#03-stack-tecnologico)
+- [04. Arquitectura Patrones](#04-arquitectura-patrones)
+- [05. Modelo Datos](#05-modelo-datos)
+- [06. Seguridad Owasp Logs](#06-seguridad-owasp-logs)
+- [07. Contratos Api Dtos](#07-contratos-api-dtos)
+- [08. Integraciones](#08-integraciones)
+- [09. Pruebas](#09-pruebas)
+- [10. Ia Responsable Hitl](#10-ia-responsable-hitl)
+- [11. Plan Ejecucion Bootstrap](#11-plan-ejecucion-bootstrap)
 
 ---
 
@@ -108,10 +107,10 @@ Su objetivo primordial es crear un **bucle de retroalimentación continuo (*cont
 
 ---
 
-<a id="01-contexto-problema"></a>
+<a id="01-contexto-alcance"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 01-contexto-problema.md -->
+<!-- SECCIÓN: 01-contexto-alcance.md -->
 <!-- ========================================================================= -->
 
 # 01. Contexto Organizacional y Definición del Problema
@@ -140,13 +139,8 @@ Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Pl
 * El despacho automatizado de confirmaciones y recordatorios a través de WhatsApp (Baileys) con sesiones aisladas por negocio y correo electrónico.
 * La administración multisede segura bajo el estándar internacional de ciberseguridad **OWASP Top 10: 2025**, permitiendo a dueños y administradores gestionar múltiples barberías con una única cuenta global sin colisión de sesiones.
 
+
 ---
-
-<a id="02-alcance"></a>
-
-<!-- ========================================================================= -->
-<!-- SECCIÓN: 02-alcance.md -->
-<!-- ========================================================================= -->
 
 # 02. Alcance del Proyecto y Hoja de Ruta de Sprints
 
@@ -188,10 +182,10 @@ Fase orientada a la experiencia de reserva y estabilidad del negocio:
 
 ---
 
-<a id="03-roles-permisos"></a>
+<a id="02-roles-permisos-rbac"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 03-roles-permisos.md -->
+<!-- SECCIÓN: 02-roles-permisos-rbac.md -->
 <!-- ========================================================================= -->
 
 # 03. Matriz de Roles, Permisos y Control de Acceso Multitenant (RBAC)
@@ -261,10 +255,10 @@ El sistema implementa un modelo de Control de Acceso Basado en Roles (RBAC) desa
 
 ---
 
-<a id="04-stack-tecnologico"></a>
+<a id="03-stack-tecnologico"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 04-stack-tecnologico.md -->
+<!-- SECCIÓN: 03-stack-tecnologico.md -->
 <!-- ========================================================================= -->
 
 # 04. Stack Tecnológico y Convenciones de Ingeniería
@@ -306,10 +300,10 @@ El sistema implementa un modelo de Control de Acceso Basado en Roles (RBAC) desa
 
 ---
 
-<a id="05-arquitectura-patrones"></a>
+<a id="04-arquitectura-patrones"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 05-arquitectura-patrones.md -->
+<!-- SECCIÓN: 04-arquitectura-patrones.md -->
 <!-- ========================================================================= -->
 
 # 05. Arquitectura del Sistema y Patrones de Diseño Multitenant
@@ -439,10 +433,10 @@ Barberia-Frontend/
 
 ---
 
-<a id="06-modelo-datos"></a>
+<a id="05-modelo-datos"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 06-modelo-datos.md -->
+<!-- SECCIÓN: 05-modelo-datos.md -->
 <!-- ========================================================================= -->
 
 # 06. Modelo de Datos y Esquema Relacional Multitenant (Prisma)
@@ -1133,10 +1127,10 @@ model ConfiguracionNegocio {
 
 ---
 
-<a id="08-requisitos-no-funcionales"></a>
+<a id="06-seguridad-owasp-logs"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 08-requisitos-no-funcionales.md -->
+<!-- SECCIÓN: 06-seguridad-owasp-logs.md -->
 <!-- ========================================================================= -->
 
 # 08. Requisitos No Funcionales (RNF) y Seguridad OWASP 2025
@@ -1178,10 +1172,10 @@ model ConfiguracionNegocio {
 
 ---
 
-<a id="09-api-contratos"></a>
+<a id="07-contratos-api-dtos"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 09-api-contratos.md -->
+<!-- SECCIÓN: 07-contratos-api-dtos.md -->
 <!-- ========================================================================= -->
 
 # 09. Contratos de la API REST y Especificación OpenAPI Multitenant
@@ -1380,10 +1374,10 @@ Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **D
 
 ---
 
-<a id="10-integraciones"></a>
+<a id="08-integraciones"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 10-integraciones.md -->
+<!-- SECCIÓN: 08-integraciones.md -->
 <!-- ========================================================================= -->
 
 # 10. Integraciones Externas y Servicios de Terceros
@@ -1432,10 +1426,10 @@ Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **D
 
 ---
 
-<a id="12-pruebas"></a>
+<a id="09-pruebas"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 12-pruebas.md -->
+<!-- SECCIÓN: 09-pruebas.md -->
 <!-- ========================================================================= -->
 
 # 12. Estrategia de Pruebas y Aseguramiento de Calidad (QA) Multitenant
@@ -1486,40 +1480,10 @@ La calidad del software se garantiza mediante una estrategia multicapa que cubre
 
 ---
 
-<a id="13-documentacion"></a>
+<a id="10-ia-responsable-hitl"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 13-documentacion.md -->
-<!-- ========================================================================= -->
-
-# 13. Documentación Técnica, Artefactos y Entregables
-
-## 13.1 Catálogo de Documentación del Repositorio
-El proyecto cuenta con un acervo formal de documentación técnica estructurada que respalda cada decisión arquitectónica y criterio de evaluación:
-
-1. **Especificación Interactiva Swagger / OpenAPI:**
-   * Archivo vivo expuesto en `/api/docs` con schemas tipados de DTOs, códigos de respuesta HTTP, cabecera `X-Negocio-Slug` y decoradores de autenticación Bearer.
-2. **Documentación Multitenant Oficial:**
-   * `CAMBIOS_PLATAFORMA_MULTITENANT.md` ➔ Registro exhaustivo de la evolución de arquitectura monotienda a SaaS multitenant, llaves compuestas y aislamiento de sesiones por pestaña.
-   * `CONTRATOS_API_MULTITENANT.md` ➔ Matriz de endpoints por rol, cabeceras requeridas y códigos de error por tenant.
-3. **Documentos de Seguridad y Ciberseguridad (OWASP):**
-   * `DICCIONARIO_DETALLADO_ALERTAS_OWASP_ZAP.docx` ➔ Análisis técnico y justificación de falsos positivos de los escaneos de penetración.
-   * `OWASP_Top_10_2025_Auditoria_Barberia.docx` ➔ Mapeo detallado de los 10 riesgos del estándar oficial contra las líneas de código fuente.
-   * `PRUEBAS_Y_VECTORES_DE_ATAQUE_OWASP_ZAP.docx` ➔ Evidencia de los 22.866 vectores de ataque ejecutados con ZAP.
-4. **Modelado y Procesos de Negocio:**
-   * `BPMN_AS_IS_Kyrios_Studio.drawio` ➔ Diagrama BPMN del proceso operativo y flujo de clientes.
-   * `EntidadRelacionBarberia.drawio` ➔ Diagrama entidad-relación del modelo de datos normalizado con llaves compuestas.
-   * `Matriz RACI por Roles del Sistema.xlsx` ➔ Asignación formal de responsabilidades por rol y sede.
-   * `HE_HU.xlsx` ➔ Backlog maestro consolidado de Épicas e Historias de Usuario con sus criterios de aceptación.
-5. **Guías Operativas:**
-   * `GUIA_WHATSAPP_BAILEYS.md` ➔ Manual de vinculación, sesiones multi-tenant en disco y resolución de problemas del bot de mensajería.
-
----
-
-<a id="14-ia-responsable"></a>
-
-<!-- ========================================================================= -->
-<!-- SECCIÓN: 14-ia-responsable.md -->
+<!-- SECCIÓN: 10-ia-responsable-hitl.md -->
 <!-- ========================================================================= -->
 
 # 14. Inteligencia Artificial Responsable, Privacidad y Protocolo HITL
@@ -1590,10 +1554,10 @@ Gobernanza dentro de la operativa de las barberías:
 
 ---
 
-<a id="15-plan-ejecucion"></a>
+<a id="11-plan-ejecucion-bootstrap"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 15-plan-ejecucion.md -->
+<!-- SECCIÓN: 11-plan-ejecucion-bootstrap.md -->
 <!-- ========================================================================= -->
 
 # 15. Plan de Ejecución, Hitos y Estado de Avance por Sprints

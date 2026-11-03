@@ -1,5 +1,6 @@
 # SUPERPROMPT MAESTRO GLOBAL - KYRIOS BARBER SAAS
-> **Especificación maestra unificada (Full-Stack) compilada automáticamente a partir de superprompt/secciones/.**
+
+> **Especificación maestra unificada (Full-Stack) compilada a partir de las secciones base.**
 
 > **ESTADO DE LA ESPECIFICACIÓN: ESPECIFICACIÓN VIVA (LIVING SPECIFICATION)**
 > Este documento representa con fidelidad milimétrica el estado del sistema hasta la fase actual y continúa evolucionando activamente a medida que se completan los hitos del roadmap y las siguientes fases de desarrollo.

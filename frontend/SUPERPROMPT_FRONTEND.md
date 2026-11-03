@@ -1,5 +1,6 @@
-# SUPERPROMPT FRONTEND - KYRIOS BARBER SAAS (React 19 + Vite + React Router)
-> **Especificación especializada para Frontend, Experiencia de Usuario (UI/UX), Enrutamiento /:slug, Theming Dinámico y Clientes HTTP.**
+# SUPERPROMPT FRONTEND - KYRIOS BARBER SAAS
+
+> **Especificación especializada para Frontend (React 19 + Vite 6 + React Router v7 + Temas Dinámicos).**
 
 > **ESTADO DE LA ESPECIFICACIÓN: ESPECIFICACIÓN VIVA (LIVING SPECIFICATION)**
 > Este documento representa con fidelidad milimétrica el estado del sistema hasta la fase actual y continúa evolucionando activamente a medida que se completan los hitos del roadmap y las siguientes fases de desarrollo.
@@ -12,18 +13,16 @@
 ## Índice de Contenidos
 
 - [00. Instrucciones Ia](#00-instrucciones-ia)
-- [01. Contexto Problema](#01-contexto-problema)
-- [02. Alcance](#02-alcance)
-- [03. Roles Permisos](#03-roles-permisos)
-- [04. Stack Tecnologico](#04-stack-tecnologico)
-- [05. Arquitectura Patrones](#05-arquitectura-patrones)
-- [07. Historias Usuario](#07-historias-usuario)
-- [09. Api Contratos](#09-api-contratos)
-- [11. Ui Ux](#11-ui-ux)
-- [12. Pruebas](#12-pruebas)
-- [13. Documentacion](#13-documentacion)
-- [14. Ia Responsable](#14-ia-responsable)
-- [15. Plan Ejecucion](#15-plan-ejecucion)
+- [01. Contexto Alcance](#01-contexto-alcance)
+- [02. Roles Sesiones Frontend](#02-roles-sesiones-frontend)
+- [03. Stack Tecnologico](#03-stack-tecnologico)
+- [04. Arquitectura Rutas Slugs](#04-arquitectura-rutas-slugs)
+- [05. Historias Usuario](#05-historias-usuario)
+- [06. Ui Ux Temas Mapas](#06-ui-ux-temas-mapas)
+- [07. Contratos Api Axios](#07-contratos-api-axios)
+- [08. Pruebas](#08-pruebas)
+- [09. Ia Responsable Hitl](#09-ia-responsable-hitl)
+- [10. Plan Ejecucion Bootstrap](#10-plan-ejecucion-bootstrap)
 
 ---
 
@@ -107,10 +106,10 @@ Su objetivo primordial es crear un **bucle de retroalimentación continuo (*cont
 
 ---
 
-<a id="01-contexto-problema"></a>
+<a id="01-contexto-alcance"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 01-contexto-problema.md -->
+<!-- SECCIÓN: 01-contexto-alcance.md -->
 <!-- ========================================================================= -->
 
 # 01. Contexto Organizacional y Definición del Problema
@@ -139,13 +138,8 @@ Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Pl
 * El despacho automatizado de confirmaciones y recordatorios a través de WhatsApp (Baileys) con sesiones aisladas por negocio y correo electrónico.
 * La administración multisede segura bajo el estándar internacional de ciberseguridad **OWASP Top 10: 2025**, permitiendo a dueños y administradores gestionar múltiples barberías con una única cuenta global sin colisión de sesiones.
 
+
 ---
-
-<a id="02-alcance"></a>
-
-<!-- ========================================================================= -->
-<!-- SECCIÓN: 02-alcance.md -->
-<!-- ========================================================================= -->
 
 # 02. Alcance del Proyecto y Hoja de Ruta de Sprints
 
@@ -187,10 +181,10 @@ Fase orientada a la experiencia de reserva y estabilidad del negocio:
 
 ---
 
-<a id="03-roles-permisos"></a>
+<a id="02-roles-sesiones-frontend"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 03-roles-permisos.md -->
+<!-- SECCIÓN: 02-roles-sesiones-frontend.md -->
 <!-- ========================================================================= -->
 
 # 03. Matriz de Roles, Permisos y Control de Acceso Multitenant (RBAC)
@@ -260,10 +254,10 @@ El sistema implementa un modelo de Control de Acceso Basado en Roles (RBAC) desa
 
 ---
 
-<a id="04-stack-tecnologico"></a>
+<a id="03-stack-tecnologico"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 04-stack-tecnologico.md -->
+<!-- SECCIÓN: 03-stack-tecnologico.md -->
 <!-- ========================================================================= -->
 
 # 04. Stack Tecnológico y Convenciones de Ingeniería
@@ -305,10 +299,10 @@ El sistema implementa un modelo de Control de Acceso Basado en Roles (RBAC) desa
 
 ---
 
-<a id="05-arquitectura-patrones"></a>
+<a id="04-arquitectura-rutas-slugs"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 05-arquitectura-patrones.md -->
+<!-- SECCIÓN: 04-arquitectura-rutas-slugs.md -->
 <!-- ========================================================================= -->
 
 # 05. Arquitectura del Sistema y Patrones de Diseño Multitenant
@@ -438,10 +432,10 @@ Barberia-Frontend/
 
 ---
 
-<a id="07-historias-usuario"></a>
+<a id="05-historias-usuario"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 07-historias-usuario.md -->
+<!-- SECCIÓN: 05-historias-usuario.md -->
 <!-- ========================================================================= -->
 
 # 07. Épicas, Historias de Usuario (HUs) y Criterios de Aceptación Gherkin
@@ -537,10 +531,72 @@ Barberia-Frontend/
 
 ---
 
-<a id="09-api-contratos"></a>
+<a id="06-ui-ux-temas-mapas"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 09-api-contratos.md -->
+<!-- SECCIÓN: 06-ui-ux-temas-mapas.md -->
+<!-- ========================================================================= -->
+
+# 11. Interfaz de Usuario (UI) y Experiencia de Usuario Multitenant (UX)
+
+## 11.1 Filosofía de Diseño y Theming Dinámico
+La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) con soporte para **personalización estética de marca en tiempo real por sede**:
+
+* **Sistema de Temas Dinámicos (`data-tenant-theme`):**
+  * Cada barbería elige su tema visual en la configuración del negocio, el cual se persiste en base de datos (`PerfilNegocio.temaKey`).
+  * `TenantBrandContext` detecta el tema activo e inyecta dinámicamente las variables CSS en el elemento raíz:
+    * `clasico-azul`: Azul Zafiro corporativo (Kyrios Oficial · `#0071BC`).
+    * `cyber-lime`: Verde neón eléctrico urbano con estética deportiva (`#22c55e`).
+    * `oro-vip`: Dorado Champagne vintage de alta gama (`#D4AF37`).
+    * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).
+    * `midnight-cyan`: Azul medianoche con cian eléctrico neón (`#00d2ff`).
+    * `crimson-velvet`: Rojo carmesí rubí y terciopelo oscuro (`#ef233c`).
+    * `monochrome-noir`: Minimalismo nórdico blanco y negro de alto contraste (`#ffffff`).
+
+* **Componente de Ubicación con Radar Pulsante:**
+  * Mapa embebido con filtro CSS dark mode.
+  * Baliza de radar luminosa pulsante centrada en las coordenadas de la sede, reactiva al color primario del tema (`--tenant-color-primario`).
+  * Tarjeta flotante glassmorphism con estado de sede en vivo y botón directo a Google Maps.
+
+---
+
+## 11.2 Principales Flujos de Usuario (User Journeys)
+
+### 1. Flujo de Agendamiento Autónomo del Cliente (`/:slug/reservar`)
+1. **Paso 1 · Catálogo de Servicios:** Tarjetas de servicios del tenant con imagen, precio y duración.
+2. **Paso 2 · Selección de Profesional:** Barberos de esa sede habilitados para el servicio.
+3. **Paso 3 · Calendario y Horas Libres:** Consulta de disponibilidad en tiempo real con franjas libres de 60 min.
+4. **Paso 4 · Datos y Confirmación:** Agendamiento como invitado o con inicio de sesión Google, con generación inmediata de token de gestión y comprobante digital.
+
+### 2. Portal del Cliente (`/:slug/cliente/mi-cuenta`)
+* Historial de citas pasadas y turnos próximos en esa barbería.
+* Reprogramación o cancelación con un clic sin necesidad de recordar contraseñas.
+
+### 3. Panel Operativo del Barbero (`/:slug/dashboard`)
+* Tarjetas diarias con las citas asignadas ordenadas cronológicamente.
+* Acciones de 1 clic: "Marcar como Completada" o "No Asistió".
+
+### 4. Configuración del Negocio y Asistente GPS (`/:slug/configuracion`)
+* Botón "📍 Usar mi ubicación actual" mediante `navigator.geolocation` para capturar coordenadas GPS automáticamente desde el local.
+* Extractor inteligente que analiza enlaces de Google Maps (`@lat,lng`, `?q=lat,lng`) o pares decimales pegados.
+* Selector visual de temas con vista previa inmediata.
+
+### 5. Directorio Global y Onboarding (`/plataforma` y `/explorar`)
+* Vista de todas las barberías activas en el sistema con métricas globales.
+* Modal para registrar nuevas sedes con asignación atómica de Superadmin fundador.
+
+---
+
+## 11.3 Criterios de Accesibilidad y Responsividad
+* **Mobile-First:** El 85% de los clientes agenda desde dispositivos móviles; todas las áreas táctiles cuentan con un mínimo de 48x48 píxeles.
+* **Feedback Inmediato:** Indicadores visuales con spinners (`KyriosSpinner`) y notificaciones *Toast* para confirmar operaciones sin recargas completas.
+
+---
+
+<a id="07-contratos-api-axios"></a>
+
+<!-- ========================================================================= -->
+<!-- SECCIÓN: 07-contratos-api-axios.md -->
 <!-- ========================================================================= -->
 
 # 09. Contratos de la API REST y Especificación OpenAPI Multitenant
@@ -739,72 +795,10 @@ Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **D
 
 ---
 
-<a id="11-ui-ux"></a>
+<a id="08-pruebas"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 11-ui-ux.md -->
-<!-- ========================================================================= -->
-
-# 11. Interfaz de Usuario (UI) y Experiencia de Usuario Multitenant (UX)
-
-## 11.1 Filosofía de Diseño y Theming Dinámico
-La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) con soporte para **personalización estética de marca en tiempo real por sede**:
-
-* **Sistema de Temas Dinámicos (`data-tenant-theme`):**
-  * Cada barbería elige su tema visual en la configuración del negocio, el cual se persiste en base de datos (`PerfilNegocio.temaKey`).
-  * `TenantBrandContext` detecta el tema activo e inyecta dinámicamente las variables CSS en el elemento raíz:
-    * `clasico-azul`: Azul Zafiro corporativo (Kyrios Oficial · `#0071BC`).
-    * `cyber-lime`: Verde neón eléctrico urbano con estética deportiva (`#22c55e`).
-    * `oro-vip`: Dorado Champagne vintage de alta gama (`#D4AF37`).
-    * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).
-    * `midnight-cyan`: Azul medianoche con cian eléctrico neón (`#00d2ff`).
-    * `crimson-velvet`: Rojo carmesí rubí y terciopelo oscuro (`#ef233c`).
-    * `monochrome-noir`: Minimalismo nórdico blanco y negro de alto contraste (`#ffffff`).
-
-* **Componente de Ubicación con Radar Pulsante:**
-  * Mapa embebido con filtro CSS dark mode.
-  * Baliza de radar luminosa pulsante centrada en las coordenadas de la sede, reactiva al color primario del tema (`--tenant-color-primario`).
-  * Tarjeta flotante glassmorphism con estado de sede en vivo y botón directo a Google Maps.
-
----
-
-## 11.2 Principales Flujos de Usuario (User Journeys)
-
-### 1. Flujo de Agendamiento Autónomo del Cliente (`/:slug/reservar`)
-1. **Paso 1 · Catálogo de Servicios:** Tarjetas de servicios del tenant con imagen, precio y duración.
-2. **Paso 2 · Selección de Profesional:** Barberos de esa sede habilitados para el servicio.
-3. **Paso 3 · Calendario y Horas Libres:** Consulta de disponibilidad en tiempo real con franjas libres de 60 min.
-4. **Paso 4 · Datos y Confirmación:** Agendamiento como invitado o con inicio de sesión Google, con generación inmediata de token de gestión y comprobante digital.
-
-### 2. Portal del Cliente (`/:slug/cliente/mi-cuenta`)
-* Historial de citas pasadas y turnos próximos en esa barbería.
-* Reprogramación o cancelación con un clic sin necesidad de recordar contraseñas.
-
-### 3. Panel Operativo del Barbero (`/:slug/dashboard`)
-* Tarjetas diarias con las citas asignadas ordenadas cronológicamente.
-* Acciones de 1 clic: "Marcar como Completada" o "No Asistió".
-
-### 4. Configuración del Negocio y Asistente GPS (`/:slug/configuracion`)
-* Botón "📍 Usar mi ubicación actual" mediante `navigator.geolocation` para capturar coordenadas GPS automáticamente desde el local.
-* Extractor inteligente que analiza enlaces de Google Maps (`@lat,lng`, `?q=lat,lng`) o pares decimales pegados.
-* Selector visual de temas con vista previa inmediata.
-
-### 5. Directorio Global y Onboarding (`/plataforma` y `/explorar`)
-* Vista de todas las barberías activas en el sistema con métricas globales.
-* Modal para registrar nuevas sedes con asignación atómica de Superadmin fundador.
-
----
-
-## 11.3 Criterios de Accesibilidad y Responsividad
-* **Mobile-First:** El 85% de los clientes agenda desde dispositivos móviles; todas las áreas táctiles cuentan con un mínimo de 48x48 píxeles.
-* **Feedback Inmediato:** Indicadores visuales con spinners (`KyriosSpinner`) y notificaciones *Toast* para confirmar operaciones sin recargas completas.
-
----
-
-<a id="12-pruebas"></a>
-
-<!-- ========================================================================= -->
-<!-- SECCIÓN: 12-pruebas.md -->
+<!-- SECCIÓN: 08-pruebas.md -->
 <!-- ========================================================================= -->
 
 # 12. Estrategia de Pruebas y Aseguramiento de Calidad (QA) Multitenant
@@ -855,40 +849,10 @@ La calidad del software se garantiza mediante una estrategia multicapa que cubre
 
 ---
 
-<a id="13-documentacion"></a>
+<a id="09-ia-responsable-hitl"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 13-documentacion.md -->
-<!-- ========================================================================= -->
-
-# 13. Documentación Técnica, Artefactos y Entregables
-
-## 13.1 Catálogo de Documentación del Repositorio
-El proyecto cuenta con un acervo formal de documentación técnica estructurada que respalda cada decisión arquitectónica y criterio de evaluación:
-
-1. **Especificación Interactiva Swagger / OpenAPI:**
-   * Archivo vivo expuesto en `/api/docs` con schemas tipados de DTOs, códigos de respuesta HTTP, cabecera `X-Negocio-Slug` y decoradores de autenticación Bearer.
-2. **Documentación Multitenant Oficial:**
-   * `CAMBIOS_PLATAFORMA_MULTITENANT.md` ➔ Registro exhaustivo de la evolución de arquitectura monotienda a SaaS multitenant, llaves compuestas y aislamiento de sesiones por pestaña.
-   * `CONTRATOS_API_MULTITENANT.md` ➔ Matriz de endpoints por rol, cabeceras requeridas y códigos de error por tenant.
-3. **Documentos de Seguridad y Ciberseguridad (OWASP):**
-   * `DICCIONARIO_DETALLADO_ALERTAS_OWASP_ZAP.docx` ➔ Análisis técnico y justificación de falsos positivos de los escaneos de penetración.
-   * `OWASP_Top_10_2025_Auditoria_Barberia.docx` ➔ Mapeo detallado de los 10 riesgos del estándar oficial contra las líneas de código fuente.
-   * `PRUEBAS_Y_VECTORES_DE_ATAQUE_OWASP_ZAP.docx` ➔ Evidencia de los 22.866 vectores de ataque ejecutados con ZAP.
-4. **Modelado y Procesos de Negocio:**
-   * `BPMN_AS_IS_Kyrios_Studio.drawio` ➔ Diagrama BPMN del proceso operativo y flujo de clientes.
-   * `EntidadRelacionBarberia.drawio` ➔ Diagrama entidad-relación del modelo de datos normalizado con llaves compuestas.
-   * `Matriz RACI por Roles del Sistema.xlsx` ➔ Asignación formal de responsabilidades por rol y sede.
-   * `HE_HU.xlsx` ➔ Backlog maestro consolidado de Épicas e Historias de Usuario con sus criterios de aceptación.
-5. **Guías Operativas:**
-   * `GUIA_WHATSAPP_BAILEYS.md` ➔ Manual de vinculación, sesiones multi-tenant en disco y resolución de problemas del bot de mensajería.
-
----
-
-<a id="14-ia-responsable"></a>
-
-<!-- ========================================================================= -->
-<!-- SECCIÓN: 14-ia-responsable.md -->
+<!-- SECCIÓN: 09-ia-responsable-hitl.md -->
 <!-- ========================================================================= -->
 
 # 14. Inteligencia Artificial Responsable, Privacidad y Protocolo HITL
@@ -959,10 +923,10 @@ Gobernanza dentro de la operativa de las barberías:
 
 ---
 
-<a id="15-plan-ejecucion"></a>
+<a id="10-plan-ejecucion-bootstrap"></a>
 
 <!-- ========================================================================= -->
-<!-- SECCIÓN: 15-plan-ejecucion.md -->
+<!-- SECCIÓN: 10-plan-ejecucion-bootstrap.md -->
 <!-- ========================================================================= -->
 
 # 15. Plan de Ejecución, Hitos y Estado de Avance por Sprints
