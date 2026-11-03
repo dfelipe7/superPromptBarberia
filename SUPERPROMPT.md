@@ -1,7 +1,15 @@
-# SUPERPROMPT - KYRIOS BARBER (KYRIOS STUDIO)
-> **Especificación maestra del sistema compilada automáticamente a partir de `prompt-master/superprompt/secciones/`. No editar directamente.**
+# SUPERPROMPT MAESTRO GLOBAL - KYRIOS BARBER SAAS
+> **Especificación maestra unificada (Full-Stack) compilada automáticamente a partir de superprompt/secciones/.**
 
-## Índice de Contenidos del Superprompt
+> **ESTADO DE LA ESPECIFICACIÓN: ESPECIFICACIÓN VIVA (LIVING SPECIFICATION)**
+> Este documento representa con fidelidad milimétrica el estado del sistema hasta la fase actual y continúa evolucionando activamente a medida que se completan los hitos del roadmap y las siguientes fases de desarrollo.
+
+> - **🟢 Sprint 1 (Cimientos & Auth):** 100% Completado y Certificado.
+> - **🟢 Fase Multitenant Core & Temas:** 100% Completado, Migrado y Desplegado.
+> - **🟡 Sprint 2 (Citas, Horarios & OWASP):** ~85% Consolidado (En curso).
+> - **⚪ Sprint 3 (Pagos, Comisiones & Switcher):** Planificado / Backlog futuro incremental.
+
+## Índice de Contenidos
 
 - [00. Instrucciones Ia](#00-instrucciones-ia)
 - [01. Contexto Problema](#01-contexto-problema)
