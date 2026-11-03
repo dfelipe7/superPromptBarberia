@@ -1,55 +1,86 @@
-# 06. Modelo de Datos y Esquema Relacional (Prisma)
+# 06. Modelo de Datos y Esquema Relacional Multitenant (Prisma)
 
-## 6.1 Diagrama Entidad-Relación Lógico
-El modelo de datos se encuentra normalizado en tercera forma normal (3NF), gestionado íntegramente mediante Prisma ORM sobre MariaDB/MySQL.
+## 6.1 Diagrama Entidad-Relación Lógico Multitenant
+El modelo de datos se encuentra normalizado en tercera forma normal (3NF), gestionado íntegramente mediante Prisma ORM sobre MySQL/MariaDB con aislamiento por `negocioId` y claves compuestas foráneas.
 
 ```
-Usuario (1) ──── (0..1) Administrador
-Usuario (1) ──── (0..1) Barbero
-Barbero (1) ──── (N) BarberoServicio (N) ──── (1) Servicio
-Barbero (1) ──── (N) HorarioSemanal
-Barbero (1) ──── (N) BloqueoHorario
-Barbero (1) ──── (N) Reserva (N) ──── (1) Cliente
+Negocio (1) ──── (0..1) PerfilNegocio
+Negocio (1) ──── (N) Administrador (N) ──── (1) Usuario (Global)
+Negocio (1) ──── (N) Barbero       (N) ──── (1) Usuario (Global)
+Negocio (1) ──── (N) Servicio      (N) ──── (N) Barbero (vía BarberoServicio)
+Negocio (1) ──── (N) HorarioSemanal
+Negocio (1) ──── (N) BloqueoHorario
+Negocio (1) ──── (N) Cliente       (N) ──── (0..1) Usuario (Global)
+Negocio (1) ──── (N) Reserva
+Negocio (1) ──── (N) WhatsAppPlantilla
+Negocio (1) ──── (0..1) ConfiguracionNegocio
 ```
+
+---
 
 ## 6.2 Entidades Principales del Esquema (`schema.prisma`)
 
-### 1. `Usuario`
-Identidad base del sistema (para administradores y barberos):
+### 1. `Negocio` y `PerfilNegocio` (Núcleo Multi-Tenant)
+* **`Negocio` (Global):**
+  * `id` (Int, PK, autoincrement)
+  * `nombre` (String, VarChar 120)
+  * `slug` (String, Unique, VarChar 80) — Identificador de URL y subdominio
+  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
+  * `zonaHoraria` (String, VarChar 50, default 'America/Bogota')
+  * `creadoEn`, `actualizadoEn` (DateTime)
+* **`PerfilNegocio` (1:1 con Negocio):**
+  * `id`, `negocioId` (Int, Unique, FK ➔ Negocio)
+  * `frasePrincipal` (String?, VarChar 200) — Lema o descriptor
+  * `temaKey` (String?, VarChar 50, default 'clasico-azul') — Paleta visual activa
+  * `direccion`, `ciudad`, `departamento`, `referencia` (String?)
+  * `latitud`, `longitud` (Decimal 10,7) — Coordenadas canónicas para radar y mapas
+  * `faviconUrl`, `bannerUrl`, `logoBlancoUrl`, `logoNegroUrl` (String?, VarChar 500)
+
+### 2. `Usuario` (Identidad Personal Global)
+* Representa a la persona física en la plataforma. **No pertenece a ningún negocio en particular**:
 * `id` (Int, PK, autoincrement)
 * `email` (String, Unique)
-* `googleId` (String?, Unique) — Identificador estable de Google OAuth
+* `googleId` (String?, Unique)
 * `nombre`, `apellido` (String)
-* `rol` (Enum: `SUPERADMIN`, `ADMINISTRADOR`, `BARBERO`)
+* `rol` (Enum: `SUPERADMIN`, `ADMINISTRADOR`, `BARBERO`, `PERSONAL`)
 * `estado` (Enum: `ACTIVO`, `INACTIVO`)
-* `createdAt`, `updatedAt` (DateTime)
 
-### 2. `Administrador` y `Barbero`
-Perfiles extendidos vinculados a `Usuario` mediante relación 1:1:
-* **`Administrador`:** `id`, `usuarioId` (Unique, FK), `estado`.
-* **`Barbero`:** `id`, `usuarioId` (Unique, FK), `porcentajeComision` (Decimal: 0.00 a 100.00), `fotoUrl` (String?), `estado`.
+### 3. `Administrador` y `Barbero` (Membresías por Sede)
+* **`Administrador`:**
+  * `id`, `usuarioId` (FK ➔ Usuario), `negocioId` (FK ➔ Negocio)
+  * `superadmin` (Boolean, default false) — Otorga facultades de Superadmin en ESTA sede
+  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
+  * **Restricción de Membresía:** `@@unique([negocioId, usuarioId])`
+* **`Barbero`:**
+  * `id`, `usuarioId` (FK ➔ Usuario), `negocioId` (FK ➔ Negocio)
+  * `porcentajeComision` (Decimal 5,2)
+  * `fotoUrl` (String?)
+  * `estado` (Enum: `ACTIVO`, `INACTIVO`)
+  * **Restricción de Membresía:** `@@unique([negocioId, usuarioId])`
 
-### 3. `Servicio` y `BarberoServicio`
-Catálogo de servicios y asignación a profesionales:
-* **`Servicio`:** `id`, `nombre`, `descripcion`, `precio` (Decimal), `duracionMinutos` (Int: estándar 60 min), `fotoUrl`, `estado`.
-* **`BarberoServicio`:** `barberoId` (FK), `servicioId` (FK) — Llave primaria compuesta `@@id([barberoId, servicioId])`.
+### 4. `Servicio` y `BarberoServicio`
+* **`Servicio`:** `id`, `negocioId` (FK ➔ Negocio), `nombre` (VarChar 100), `descripcion`, `precio` (Decimal 10,2), `duracionMinutos` (Int), `fotoUrl`, `estado`. Restricción: `@@unique([negocioId, nombre])`.
+* **`BarberoServicio`:** `barberoId` (FK), `servicioId` (FK), `negocioId` (FK). Llave primaria compuesta `@@id([barberoId, servicioId])` y relaciones foráneas compuestas con validación de que barbero y servicio pertenezcan al mismo tenant.
 
-### 4. `HorarioSemanal` y `BloqueoHorario` (Módulo de Disponibilidad HE-08)
-* **`HorarioSemanal`:** `id`, `barberoId` (FK), `dayOfWeek` (Int: 0=Domingo a 6=Sábado), `startTime` (String "HH:mm"), `endTime` (String "HH:mm"). Restricción de unicidad: `@@unique([barberoId, dayOfWeek, startTime])`.
-* **`BloqueoHorario`:** `id`, `barberoId` (FK), `date` (DateTime @db.Date), `startTime`, `endTime`, `motivo` (String), `status` (Enum: `ACTIVO`, `CANCELADO`).
+### 5. `HorarioSemanal` y `BloqueoHorario`
+* **`HorarioSemanal` (`BarberWeeklySlot`):** `id`, `barberoId`, `dayOfWeek` (0-6), `startTime`, `endTime`, `negocioId`. Restricción: `@@unique([negocioId, barberoId, dayOfWeek, startTime])`.
+* **`BloqueoHorario` (`BarberScheduleBlock`):** `id`, `barberoId`, `date` (Date), `startTime`, `endTime`, `motivo`, `status`, `negocioId`.
 
-### 5. `Cliente` y `Reserva` (Módulo de Citas HE-04)
-* **`Cliente`:** `id`, `googleId` (String?, Unique para clientes autenticados), `usuarioId` (Int?, FK opcional), `nombre`, `apellido`, `email`, `telefono` (String: PII).
-* **`Reserva`:** 
-  * `id` (Int, PK)
-  * `barberoId` (FK ➔ Barbero), `servicioId` (FK ➔ Servicio), `clienteId` (FK ➔ Cliente)
-  * `date` (DateTime @db.Date), `startTime`, `endTime`
+### 6. `Cliente` y `Reserva` (`Reservation`)
+* **`Cliente`:**
+  * `id`, `negocioId` (FK ➔ Negocio), `usuarioId` (FK opcional ➔ Usuario), `googleId` (String?)
+  * `nombre`, `apellido`, `email`, `telefono`
+  * **Unicidad Multitenant:** `@@unique([negocioId, googleId])`, `@@unique([negocioId, usuarioId])`, `@@unique([negocioId, id])`.
+* **`Reserva` (`Reservation`):**
+  * `id`, `negocioId` (FK ➔ Negocio), `barberoId`, `servicioId`, `clienteId`
+  * `date` (Date), `startTime`, `endTime`
   * `precio` (Decimal: congelado al momento del agendamiento)
   * `status` (Enum: `PENDIENTE`, `CONFIRMADA`, `COMPLETADA`, `CANCELADA`, `NO_SHOW`)
-  * `tokenGestion` (String?, Unique: hash seguro para cancelar o consultar sin login)
+  * `tokenGestion` (String?, Unique: hash seguro para cancelar o consultar)
+  * `gestionTokenCifrado` (String?: copia cifrada reversible para idempotencia)
   * `tokenExpiracion` (DateTime?)
-  * **Índices de Concurrencia:** `@@index([barberoId, date, status])`, `@@unique([barberoId, date, startTime, slotActivo])` para impedir colisiones o sobreventa de citas.
+  * **Índices de Concurrencia:** `@@unique([negocioId, barberoId, date, startTime, slotActivo])`.
 
-### 6. `ConfiguracionWhatsapp`
-Estado de conexión del servicio de notificaciones Baileys:
-* `id`, `sesionActiva` (Boolean), `telefonoConectado` (String?), `ultimaSincronizacion`.
+### 7. `WhatsAppPlantilla` y `ConfiguracionNegocio`
+* **`WhatsAppPlantilla`:** Plantillas de confirmación y recordatorio personalizadas por sede (`@@unique([negocioId, tipo])`).
+* **`ConfiguracionNegocio`:** Políticas de cancelación, tolerancia de no-show y parámetros operativos por sede (`@@unique([negocioId])`).

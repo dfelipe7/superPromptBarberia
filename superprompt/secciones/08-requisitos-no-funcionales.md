@@ -1,21 +1,21 @@
 # 08. Requisitos No Funcionales (RNF) y Seguridad OWASP 2025
 
-## 8.1 Matriz de Blindaje OWASP Top 10: 2025
+## 8.1 Matriz de Blindaje OWASP Top 10: 2025 y Aislamiento Multitenant
 
-* **RNF-SEC-01 (A01: Broken Access Control):**  
-  El sistema **DEBE** aplicar control de acceso con doble guardia: `ProtectedRoute` en React y `JwtAuthGuard` + `RolesGuard` en NestJS. La autorización granular a nivel de servicio **DEBE** validar la propiedad del recurso para evitar vulnerabilidades BOLA/IDOR.
+* **RNF-SEC-01 (A01: Broken Access Control & Multi-Tenant Isolation):**  
+  El sistema **DEBE** aplicar control de acceso con doble guardia: `ProtectedRoute` en React y `JwtAuthGuard` + `RolesGuard` en NestJS. Toda consulta y mutación a entidades operativas **DEBE** estar aislada estrictamente por `negocioId` mediante extensiones de Prisma y el middleware de contexto de inquilino. Se prohíbe que una barbería acceda a los registros o configuración de otra.
 * **RNF-SEC-02 (A02: Security Misconfiguration):**  
-  El backend **DEBE** inicializarse con `helmet()` configurando cabeceras de seguridad estrictas (`X-Frame-Options: SAMEORIGIN`, `X-Content-Type-Options: nosniff`), CORS restringido a los dominios del frontend, y deshabilitación obligatoria del encabezado `X-Powered-By`.
+  El backend **DEBE** inicializarse con `helmet()` configurando cabeceras de seguridad estrictas, CORS restringido a los dominios del frontend, y deshabilitación obligatoria del encabezado `X-Powered-By`. En Nginx del frontend, la directiva `Content-Security-Policy` (`frame-src`) **DEBE** autorizar explícitamente los dominios seguros de mapas (`maps.google.com`, `*.openstreetmap.org`).
 * **RNF-SEC-03 (A03: Software Supply Chain Failures):**  
   Las dependencias del frontend y backend **DEBEN** mantenerse con `package-lock.json` inmutable y auditoría automatizada en CI/CD con `npm audit` exigiendo **0 vulnerabilidades de severidad alta o crítica**.
 * **RNF-SEC-04 (A04: Cryptographic Failures):**  
-  Las contraseñas **DEBEN** procesarse con hashing irreversible con salt (Argon2 / Bcrypt). Las sesiones **DEBEN** usar tokens JWT firmados con algoritmo HMAC-SHA256 y canal de transporte cifrado obligatorio mediante HTTPS/TLS.
+  Las contraseñas **DEBEN** procesarse con hashing irreversible con salt (Argon2 / Bcrypt). Las sesiones **DEBEN** usar tokens JWT firmados con algoritmo HMAC-SHA256, separando tokens de personal de tokens de clientes, y canal de transporte cifrado obligatorio mediante HTTPS/TLS.
 * **RNF-SEC-05 (A05: Injection):**  
-  El 100% de las consultas a la base de datos **DEBEN** realizarse a través de las funciones nativas parametrizadas de Prisma ORM, prohibiendo expresamente la concatenación de cadenas en SQL. El cliente React **DEBE** escapar automáticamente el árbol DOM contra Cross-Site Scripting (XSS).
-* **RNF-SEC-06 (A06: Insecure Design):**  
-  La arquitectura de agendamiento para clientes invitados **DEBE** desacoplarse del login administrativo mediante tokens temporales de gestión (`X-Reservation-Management-Token`).
+  El 100% de las consultas a la base de datos **DEBEN** realizarse a través de las funciones nativas parametrizadas de Prisma ORM, prohibiendo la concatenación de cadenas en SQL. El cliente React **DEBE** escapar automáticamente el árbol DOM contra Cross-Site Scripting (XSS).
+* **RNF-SEC-06 (A06: Insecure Design & Tab Isolation):**  
+  La arquitectura de agendamiento para clientes invitados **DEBE** desacoplarse del login administrativo mediante tokens de gestión cifrados (`gestionTokenCifrado`). Las sesiones de navegador **DEBEN** aislarse por ruta (`token_barberia_<slug>`) impidiendo que abrir dos sedes en pestañas simultáneas sobreescriba credenciales.
 * **RNF-SEC-07 (A07: Authentication Failures):**  
-  La autenticación administrativa **DEBE** integrarse con el proveedor oficial Google OAuth 2.0 (SSO) y contar con Throttler / Rate Limiting configurado en 100 peticiones por minuto por IP para mitigar ataques de fuerza bruta o denegación de servicio.
+  La autenticación administrativa y de clientes **DEBE** integrarse con el proveedor oficial Google OAuth 2.0 (SSO) y contar con Throttler / Rate Limiting configurado en 100 peticiones por minuto por IP para mitigar ataques de fuerza bruta.
 * **RNF-SEC-08 (A08: Software or Data Integrity Failures):**  
   El módulo de subida de archivos (Multer) **DEBE** verificar el tipo MIME real inspeccionando los números mágicos del archivo binario y renombrarlo aleatoriamente mediante UUIDv4 para impedir la ejecución de scripts arbitrarios en el servidor.
 * **RNF-SEC-09 (A09: Security Logging and Alerting):**  

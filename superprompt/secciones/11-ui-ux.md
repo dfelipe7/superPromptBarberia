@@ -1,35 +1,53 @@
-# 11. Interfaz de Usuario (UI) y Experiencia de Usuario (UX)
+# 11. Interfaz de Usuario (UI) y Experiencia de Usuario Multitenant (UX)
 
-## 11.1 Filosofía de Diseño Visual
-La identidad visual de **Kyrios Barber** está orientada a una experiencia premium, sofisticada y moderna, inspirada en las barberías clásicas de estilo vintage combinadas con un diseño web minimalista contemporáneo.
+## 11.1 Filosofía de Diseño y Theming Dinámico
+La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) con soporte para **personalización estética de marca en tiempo real por sede**:
 
-* **Paleta Cromática (Modo Oscuro Editorial):**
-  * Fondo Principal: Negro carbón profundo (`#0f0f11` / `#141416`).
-  * Superficies y Tarjetas: Gris grafito con sutiles bordes translúcidos (`#1e1e24`).
-  * Acentos y Jerarquía: Dorado ámbar / bronce elegante (`#d4af37` / `#c59b27`) para botones de acción primaria y elementos activos.
-  * Tipografía: Fuentes modernas de alta legibilidad (Inter / Outfit / Playfair para encabezados de lujo).
-  * Estados del Sistema: Verde esmeralda para confirmaciones exitosas, ámbar para advertencias de turno y carmesí para cancelaciones o errores.
+* **Sistema de Temas Dinámicos (`data-tenant-theme`):**
+  * Cada barbería elige su tema visual en la configuración del negocio, el cual se persiste en base de datos (`PerfilNegocio.temaKey`).
+  * `TenantBrandContext` detecta el tema activo e inyecta dinámicamente las variables CSS en el elemento raíz:
+    * `clasico-azul`: Azul Zafiro corporativo (Kyrios Oficial · `#0071BC`).
+    * `cyber-lime`: Verde neón eléctrico urbano con estética deportiva (`#22c55e`).
+    * `oro-vip`: Dorado Champagne vintage de alta gama (`#D4AF37`).
+    * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).
+    * `midnight-cyan`: Azul medianoche con cian eléctrico neón (`#00d2ff`).
+    * `crimson-velvet`: Rojo carmesí rubí y terciopelo oscuro (`#ef233c`).
+    * `monochrome-noir`: Minimalismo nórdico blanco y negro de alto contraste (`#ffffff`).
+
+* **Componente de Ubicación con Radar Pulsante:**
+  * Mapa embebido con filtro CSS dark mode.
+  * Baliza de radar luminosa pulsante centrada en las coordenadas de la sede, reactiva al color primario del tema (`--tenant-color-primario`).
+  * Tarjeta flotante glassmorphism con estado de sede en vivo y botón directo a Google Maps.
 
 ---
 
 ## 11.2 Principales Flujos de Usuario (User Journeys)
 
-### 1. Flujo de Agendamiento Autónomo del Cliente (4 Pasos)
-1. **Paso 1 · Catálogo de Servicios:** El cliente visualiza las tarjetas de servicios con imagen, precio y duración, seleccionando uno.
-2. **Paso 2 · Selección de Profesional:** Se despliegan únicamente los barberos capacitados para ese servicio, mostrando su foto y nombre.
-3. **Paso 3 · Calendario y Horas Libres:** Se selecciona la fecha; el sistema consulta la disponibilidad en tiempo real y pinta las horas disponibles en bloques de 60 min.
-4. **Paso 4 · Datos y Confirmación:** El cliente ingresa sus datos (o se auto-completan si inició sesión con Google) y presiona "Confirmar Cita", recibiendo de inmediato su token de gestión en pantalla y por WhatsApp.
+### 1. Flujo de Agendamiento Autónomo del Cliente (`/:slug/reservar`)
+1. **Paso 1 · Catálogo de Servicios:** Tarjetas de servicios del tenant con imagen, precio y duración.
+2. **Paso 2 · Selección de Profesional:** Barberos de esa sede habilitados para el servicio.
+3. **Paso 3 · Calendario y Horas Libres:** Consulta de disponibilidad en tiempo real con franjas libres de 60 min.
+4. **Paso 4 · Datos y Confirmación:** Agendamiento como invitado o con inicio de sesión Google, con generación inmediata de token de gestión y comprobante digital.
 
-### 2. Panel Operativo del Barbero (Agenda en Vivo)
-* Vista simplificada tipo tarjeta diaria con las citas ordenadas cronológicamente.
-* Información concisa: hora de inicio, nombre del cliente, servicio a realizar y estado actual.
-* Botones de acción rápida en 1 clic: "Marcar como Completada" o "No Asistió".
+### 2. Portal del Cliente (`/:slug/cliente/mi-cuenta`)
+* Historial de citas pasadas y turnos próximos en esa barbería.
+* Reprogramación o cancelación con un clic sin necesidad de recordar contraseñas.
 
-### 3. Panel de Administración y Configuración
-* Gestión de usuarios, edición de comisiones y vinculación de WhatsApp mediante lector de código QR integrado directamente en la pantalla.
+### 3. Panel Operativo del Barbero (`/:slug/dashboard`)
+* Tarjetas diarias con las citas asignadas ordenadas cronológicamente.
+* Acciones de 1 clic: "Marcar como Completada" o "No Asistió".
+
+### 4. Configuración del Negocio y Asistente GPS (`/:slug/configuracion`)
+* Botón "📍 Usar mi ubicación actual" mediante `navigator.geolocation` para capturar coordenadas GPS automáticamente desde el local.
+* Extractor inteligente que analiza enlaces de Google Maps (`@lat,lng`, `?q=lat,lng`) o pares decimales pegados.
+* Selector visual de temas con vista previa inmediata.
+
+### 5. Directorio Global y Onboarding (`/plataforma` y `/explorar`)
+* Vista de todas las barberías activas en el sistema con métricas globales.
+* Modal para registrar nuevas sedes con asignación atómica de Superadmin fundador.
 
 ---
 
 ## 11.3 Criterios de Accesibilidad y Responsividad
-* **Mobile-First:** El 85% de los clientes agenda desde dispositivos móviles; todos los botones, selectores de fecha y campos de formulario cuentan con áreas táctiles mínimas de 48x48 píxeles.
-* **Feedback Inmediato:** Uso de estados de carga con *spinners* y alertas *Toast* no invasivas para confirmar operaciones sin recargar la página completa.
+* **Mobile-First:** El 85% de los clientes agenda desde dispositivos móviles; todas las áreas táctiles cuentan con un mínimo de 48x48 píxeles.
+* **Feedback Inmediato:** Indicadores visuales con spinners (`KyriosSpinner`) y notificaciones *Toast* para confirmar operaciones sin recargas completas.

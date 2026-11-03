@@ -1,33 +1,35 @@
-# 12. Estrategia de Pruebas y Aseguramiento de Calidad (QA)
+# 12. Estrategia de Pruebas y Aseguramiento de Calidad (QA) Multitenant
 
 ## 12.1 Pirámide de Pruebas Automatizadas
-La calidad del software se garantiza mediante una estrategia multicapa que cubre pruebas unitarias, de integración y pruebas dinámicas de penetración:
+La calidad del software se garantiza mediante una estrategia multicapa que cubre pruebas unitarias, pruebas de aislamiento multi-tenant, integración y pruebas dinámicas de penetración:
 
 ```
           / \
-         /   \     Pruebas DAST (OWASP ZAP: 22.866 vectores)
-        / DAST\   ─────────────────────────────────────────────
-       /───────\   Pruebas de Integración (Jest + Repositorios reales)
-      / INTEGR. \ ─────────────────────────────────────────────
-     / UNITARIAS \ Pruebas Unitarias de Servicios y Controladores
-    /─────────────\
+         /   \     Pruebas DAST (OWASP ZAP: 22.866 vectores de ataque)
+        / DAST\   ─────────────────────────────────────────────────────
+       / AISL. \   Pruebas de Aislamiento Tenant (negocio-aislamiento.spec)
+      /─────────\ ─────────────────────────────────────────────────────
+     / INTEGRAC. \ Pruebas de Integración (Jest + Repositorios reales)
+    / UNITARIAS   \ Pruebas Unitarias de Servicios, Guards y DTOs
+   /───────────────\
 ```
 
 ---
 
 ## 12.2 Certificación de Pruebas Ejecutadas
 
-### 1. Pruebas Unitarias y de Integración (Jest)
-* **Resultado Oficial Verificado:** **65 Suites de Pruebas Aprobadas (65/65, 100%)** y **751 Casos de Prueba Ejecutados Satisfactoriamente (751/751, 100% éxito)**.
+### 1. Pruebas Unitarias, de Integración y Aislamiento (Jest)
 * Cobertura de pruebas sobre servicios críticos:
+  * `negocio-aislamiento.spec.ts` ➔ Blindaje de consultas tenant-scoped: verificación de que ninguna consulta pueda escapar del `negocioId` del contexto.
+  * `perfil-negocio.service.spec.ts` ➔ Pruebas de persistencia de marca, validación de coordenadas y selección de `temaKey`.
   * `disponibilidad.service.spec.ts` ➔ Validación de franjas horarias y principio *Fail-Closed*.
   * `bloqueos-horario.service.spec.ts` ➔ Pruebas de solapamiento de descansos y vacaciones.
-  * `horario-semanal.service.spec.ts` ➔ Creación y actualización de semanas laborales.
-  * `all-exceptions.filter.spec.ts` ➔ Captura de errores 403 y 500 y verificación de llamadas a `AlertsService`.
-  * `alerts.service.spec.ts` ➔ Despacho de correos electrónicos vía Nodemailer.
-  * `reservas-invitado-gestion.spec.ts` ➔ Validación de tokens de gestión efímeros.
+  * `horario-semanal.service.spec.ts` ➔ Creación y actualización de semanas laborales por sede.
+  * `barberos.service.spec.ts` ➔ Gestión de comisiones por sede, fotos y membresías (46/46 tests aprobados).
+  * `administradores.service.spec.ts` ➔ Asignación de Superadmin y administradores con llaves compuestas.
+  * `all-exceptions.filter.spec.ts` ➔ Captura de errores 403/500 y verificación de llamadas a `AlertsService`.
   * `recordatorios.cron.spec.ts` ➔ Cron de recordatorios automáticos y enmascaramiento de PII.
-* Comando de ejecución: `npm test` y `npm run test:cov`.
+* Comando de ejecución: `npm test` y `npm run test:multitenant`.
 
 ### 2. Pruebas de Seguridad en Dependencias (SCA)
 * **Herramienta:** `npm audit` integrado en el pipeline de GitHub Actions (`security-audit.yml`).
@@ -41,4 +43,3 @@ La calidad del software se garantiza mediante una estrategia multicapa que cubre
   * **5.975 ataques de Inyección de Comandos OS:** 0 alertas (100% mitigado por validación de DTOs).
   * **5.610 ataques de Server-Side Code Injection (SSTI):** 0 alertas.
   * **Ataques de Fuerza Bruta / Inundación:** Mitigados con éxito mediante Throttler (HTTP 429 Too Many Requests).
-* **Alertas Analizadas:** Las advertencias reportadas por ZAP corresponden a **falsos positivos** propios del servidor de desarrollo local de Vite (`?v=...`) o scripts dinámicos de Google OAuth, sin impacto en producción.
