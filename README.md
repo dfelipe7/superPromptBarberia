@@ -1,35 +1,76 @@
-# Prompt Master — Kyrios Barber (superPromptBarberia)
+# Kyrios Barber Platform — Superprompt Modular SaaS Multitenant
 
-Repositorio y bitácora modular de prompts y especificación de ingeniería para **Kyrios Barber (Kyrios Studio)**.
+Repositorio oficial de especificación de ingeniería y prompts ejecutables para **Kyrios Barber Platform (SaaS Multitenant)**.
 
-## Estructura Modular
-El sistema implementa el patrón **Superprompt Modular**, dividiendo la especificación completa del software en 16 secciones temáticas dentro de `superprompt/secciones/`:
+Este repositorio alberga la arquitectura viva (*Living Architecture Specification*) y los prompts modulares optimizados para ser interpretados por agentes de Inteligencia Artificial (IA) o desarrolladores para la construcción, auditoría y evolución del sistema.
 
-* `00-instrucciones-ia.md`: Directivas y restricciones de codificación para modelos de IA.
-* `01-contexto-problema.md`: Definición del negocio y dolor operativo de Kyrios Studio.
-* `02-alcance.md`: Estado consolidado del Sprint 1, Sprint 2 y backlog del Sprint 3.
-* `03-roles-permisos.md`: Matriz RBAC y responsabilidades RACI.
-* `04-stack-tecnologico.md`: Tecnologías, librerías y estándares de ingeniería.
-* `05-arquitectura-patrones.md`: Patrones Repositorio, Estrategia, Puertos y Principio Fail-Closed.
-* `06-modelo-datos.md`: Esquema Prisma y entidades relacionales.
-* `07-historias-usuario.md`: Catálogo de Épicas (HE-01 a HE-08) y criterios Gherkin.
-* `08-requisitos-no-funcionales.md`: Matriz OWASP Top 10: 2025, rendimiento y resiliencia.
-* `09-api-contratos.md`: Endpoints REST y especificación OpenAPI.
-* `10-integraciones.md`: Google OAuth 2.0, WhatsApp Baileys y Nodemailer SMTP.
-* `11-ui-ux.md`: Identidad visual Dark Mode y flujo de agendamiento en 4 pasos.
-* `12-pruebas.md`: Resultados QA, pruebas DAST con OWASP ZAP y `npm audit`.
-* `13-documentacion.md`: Inventario de artefactos y diagramas.
-* `14-ia-responsable.md`: Privacidad de PII y ética de datos.
-* `15-plan-ejecucion.md`: Cronograma y avance de hitos por Sprints.
+---
 
-## Compilación del SUPERPROMPT
-Para recompilar el archivo consolidado `SUPERPROMPT.md` tras editar cualquier sección:
+## 📁 Estructura del Repositorio
 
-```bash
-python superprompt/build.py
+El repositorio está desacoplado por dominios técnicos para evitar sobrecarga de contexto en los modelos de lenguaje:
+
+```
+superPromptBarberia/
+│
+├── backend/                                <- Prompts especializados para Backend
+│   ├── SUPERPROMPT_BACKEND.md              <- Archivo compilado de Backend listo para IA
+│   └── secciones/                          <- 12 prompts modulares de Backend
+│       ├── 00-instrucciones-ia.md          <- Directivas estrictas + Protocolo HITL
+│       ├── 01-contexto-alcance.md          <- Contexto SaaS y roadmap vivo
+│       ├── 02-roles-permisos-rbac.md       <- Membresías por sede y matriz RACI
+│       ├── 03-stack-tecnologico.md         <- NestJS 11, Prisma 7, MySQL 8, Helmet
+│       ├── 04-arquitectura-patrones.md     <- Tenant Isolation, Middleware X-Negocio-Slug
+│       ├── 05-modelo-datos.md              <- El schema.prisma literal de 650 líneas
+│       ├── 06-seguridad-owasp-logs.md      <- Winston rotativo, Fail-Closed, OWASP 2025
+│       ├── 07-contratos-api-dtos.md        <- Endpoints y DTOs JSON canónicos
+│       ├── 08-integraciones.md             <- Baileys WhatsApp, SMTP Mailer, Google Auth
+│       ├── 09-pruebas.md                   <- Mocks y pruebas unitarias con Jest
+│       ├── 10-ia-responsable-hitl.md       <- Gobernanza y compuertas de decisión crítica
+│       └── 11-plan-ejecucion-bootstrap.md  <- Bootstrapping paso a paso del backend y BD
+│
+├── frontend/                               <- Prompts especializados para Frontend
+│   ├── SUPERPROMPT_FRONTEND.md             <- Archivo compilado de Frontend listo para IA
+│   └── secciones/                          <- 11 prompts modulares de Frontend
+│       ├── 00-instrucciones-ia.md          <- Directivas estrictas + Protocolo HITL
+│       ├── 01-contexto-alcance.md          <- Contexto SaaS y roadmap vivo
+│       ├── 02-roles-sesiones-frontend.md   <- Aislamiento de tokens por pestaña y slug
+│       ├── 03-stack-tecnologico.md         <- React 19, Vite 6, React Router v7, Query v5
+│       ├── 04-arquitectura-rutas-slugs.md  <- Enrutamiento /:slug y hub /plataforma
+│       ├── 05-historias-usuario.md         <- Flujos de reserva cliente, barbero y admin
+│       ├── 06-ui-ux-temas-mapas.md         <- Temas dinámicos (temaKey), OpenStreetMap dark
+│       ├── 07-contratos-api-axios.md       <- Clientes Axios duales e interceptors
+│       ├── 08-pruebas.md                   <- Testing de componentes con Vitest
+│       ├── 09-ia-responsable-hitl.md       <- Gobernanza y compuertas de decisión crítica
+│       └── 10-plan-ejecucion-bootstrap.md  <- Bootstrapping paso a paso del frontend
+│
+├── .github/workflows/                      <- CI/CD en GitHub Actions
+│   └── superprompt.yml                     <- Validación automática de compilación
+│
+├── build.py                                <- Script maestro de compilación
+├── README.md                               <- Guía del repositorio
+└── SUPERPROMPT.md                          <- Documento Maestro Full-Stack consolidado
 ```
 
-## Baterías de Pruebas QA (Estándar IEEE 829 - 7 Puntos)
-El proyecto cuenta con dos baterías de pruebas exhaustivas con todos los casos aprobados:
-* `BATERIA_DE_PRUEBAS_QA_SPRINT_1_Y_2.md`: Batería Técnica de API y Backend (38 casos, 751 tests automatizados de Jest, OWASP ZAP DAST).
-* `BATERIA_DE_PRUEBAS_FUNCIONALES_USUARIO_QA.md`: Batería Funcional desde la Perspectiva del Usuario / UI (25 casos de verificación visual en React 19).
+---
+
+## 🛠️ Compilación Automática de los Prompts
+
+Para recompilar los documentos maestros tras modificar cualquier sección en `backend/secciones/` o `frontend/secciones/`:
+
+```bash
+python build.py
+```
+
+El script genera automáticamente:
+1. `backend/SUPERPROMPT_BACKEND.md` (12 secciones de Backend)
+2. `frontend/SUPERPROMPT_FRONTEND.md` (11 secciones de Frontend)
+3. `SUPERPROMPT.md` (Compilado Full-Stack maestro en la raíz)
+
+---
+
+## 🤖 Protocolo Human-in-the-Loop (HITL)
+
+Todo el ciclo de ingeniería opera bajo supervisión humana continua:
+* **El modelo de IA** predice, automatiza y formula propuestas de código, DTOs y migraciones.
+* **El desarrollador humano** inspecciona diffs, ejecuta pruebas y retiene la autoridad exclusiva en las compuertas críticas (migraciones SQL, esquemas de BD, seguridad y despliegues).
