@@ -3,6 +3,8 @@
 ## 2.1 Delimitación del Alcance Global
 El proyecto abarca el desarrollo de una plataforma SaaS multitenant para la gestión integral de barberías, contemplando una API REST en NestJS conectada a base de datos relacional MariaDB/MySQL con aislamiento por inquilino, y un cliente web responsivo en React 19 con soporte para prefijos de ruta por sede (`/:slug`).
 
+Todo el ciclo de ingeniería y entrega se encuentra normado bajo el enfoque **Human-in-the-Loop (HITL)**: la Inteligencia Artificial asiste proponiendo código, optimizaciones y pruebas en un bucle continuo de retroalimentación, mientras que el desarrollador humano valida cada cambio y ejerce la toma de decisiones finales en momentos críticos (migraciones de esquemas Prisma, seguridad, autorizaciones y despliegue a producción).
+
 ## 2.2 Estado de Cumplimiento por Fases
 
 ### 🟢 Sprint 1: Fundaciones, Identidad y Gestión Operativa Base (100% Completado)

@@ -59,32 +59,46 @@ Este documento establece las directrices normativas y técnicas para el desarrol
 
 ## 0.4 Protocolo Operativo Human-in-the-Loop (HITL)
 
-El desarrollo del sistema opera bajo un modelo obligatorio de **Human-in-the-Loop (HITL)**. La IA actúa como un copiloto de ingeniería que propone, formula y refactoriza código, pero **el desarrollador humano es el único con autoridad para autorizar y ejecutar acciones críticas**:
+### 0.4.1 Marco Conceptual y Fundamento Teórico
+La técnica **Human-in-the-Loop (HITL)** o *humano en el bucle* es un enfoque de inteligencia artificial (IA) que combina el aprendizaje automático y los modelos de lenguaje con la **supervisión o intervención humana directa**. 
+
+Su objetivo primordial es crear un **bucle de retroalimentación continuo (*continuous feedback loop*)**:
+1. **Automatización y Propuesta (Modelo de IA):** El agente de IA realiza predicciones, genera código TypeScript, formula DTOs, propone esquemas de base de datos o automatiza procesos técnicos repetitivos.
+2. **Supervisión y Refinamiento (Humano en el Bucle):** El desarrollador humano inspecciona, valida, corrige, refina y retroalimenta al modelo con ajustes sucesivos.
+3. **Decisiones Finales en Momentos Críticos:** En aquellos puntos donde un error genera impacto irreversible (migraciones de base de datos, persistencia, seguridad, autenticación y despliegue a producción), la decisión final reside **exclusivamente en la persona humana**.
 
 ```
-[ Desarrollador Humano ] ──► Solicita requerimiento y aprueba plan inicial
-           │
-           ▼
-[ Agente de IA ] ──────────► Propone cambios de código, DTOs y pruebas unitarias
-           │
-           ▼
-[ Compuerta 1: Revisión ] ──► Humano audita el diff (`git diff`) y autoriza aplicación
-           │
-           ▼
-[ Compuerta 2: Calidad ] ───► Humano ejecuta compilación y tests (`npm test`, `npm run build`)
-           │
-           ▼
-[ Compuerta 3: BD/Prisma ] ─► Humano revisa SQL de migración y ejecuta `prisma migrate deploy`
-           │
-           ▼
-[ Compuerta 4: Deploy ] ────► Humano autoriza `git push`, merge a `master` y paso a producción
+  ┌────────────────────────────────────────────────────────┐
+  │         BUCLE DE RETROALIMENTACIÓN CONTINUO (HITL)     │
+  └────────────────────────────────────────────────────────┘
+              │                               ▲
+  1. Propuesta de Código                      │ 2. Retroalimentación,
+     y Automatización                         │    Pruebas y Corrección
+              ▼                               │
+  ┌──────────────────────┐        ┌──────────────────────┐
+  │     AGENTE DE IA     │        │ DESARROLLADOR HUMANO │
+  │   (Genera / Predice) │        │ (Supervisa / Refina) │
+  └──────────────────────┘        └──────────────────────┘
+              │
+              ▼ [Llegada a un Momento Crítico]
+  ┌──────────────────────────────────────────────────────┐
+  │            COMPUERTAS DE APROBACIÓN HUMANA           │
+  │  • Compuerta 1: Aprobación de Plan y Arquitectura    │
+  │  • Compuerta 2: Auditoría de SQL de Migraciones      │
+  │  • Compuerta 3: Verificación de Tests y Calidad      │
+  │  • Compuerta 4: Aprobación de Push / Despliegue      │
+  └──────────────────────────────────────────────────────┘
+              │ [Solo si el Humano Autoriza]
+              ▼
+    [ Persistencia en BD / Despliegue a Producción ]
 ```
 
-### Reglas de Ejecución HITL para la IA:
-1. **Propuesta Previa (Plan Gate):** La IA **DEBE** explicar qué archivos va a modificar y por qué antes de realizar cambios masivos.
-2. **Prohibición de Despliegue Autónomo:** La IA **NO DEBE** ejecutar despliegues directos a producción sin que el humano haya verificado previamente el resultado en local o staging.
-3. **Control Criptográfico y de Migraciones:** Las migraciones de base de datos requieren siempre que el humano revise el archivo `migration.sql` y ejecute explícitamente el comando de migración en la base de datos real.
-4. **Entorno Aislado (Sandbox):** Toda ejecución de comandos que interactúe con redes externas o servicios en la nube requiere la aprobación explícita del desarrollador humano en la terminal.
+### 0.4.2 Las 5 Compuertas Mandatorias de Validación Humana
+1. **Compuerta 1 (Plan & Arquitectura):** La IA **DEBE** plantear el diagnóstico y el plan de modificación antes de alterar código sustancial. El desarrollador valida el alcance.
+2. **Compuerta 2 (Revisión de Código / Diff):** El humano audita línea por línea los cambios propuestos (`git diff`) para descartar regresiones o violaciones al aislamiento multi-inquilino.
+3. **Compuerta 3 (Calidad & Tests):** Ningún cambio se considera terminado hasta que el humano ejecute y verifique las suites unitarias (`npm test`) y de compilación (`npm run build`).
+4. **Compuerta 4 (Control de Migraciones SQL):** Ninguna migración de base de datos (`prisma migrate dev` o `prisma migrate deploy`) se ejecuta sin que el humano haya revisado y aprobado el archivo SQL generado (`migration.sql`). Se prohíbe `db push` destructivo.
+5. **Compuerta 5 (Control de Red y Despliegue):** La IA **NO DEBE** ejecutar `git push`, interactuar con redes externas sin permiso, ni desplegar directamente a Railway/producción. Toda acción de publicación requiere autorización explícita del humano en la terminal.
 
 ---
 
@@ -132,6 +146,8 @@ Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Pl
 
 ## 2.1 Delimitación del Alcance Global
 El proyecto abarca el desarrollo de una plataforma SaaS multitenant para la gestión integral de barberías, contemplando una API REST en NestJS conectada a base de datos relacional MariaDB/MySQL con aislamiento por inquilino, y un cliente web responsivo en React 19 con soporte para prefijos de ruta por sede (`/:slug`).
+
+Todo el ciclo de ingeniería y entrega se encuentra normado bajo el enfoque **Human-in-the-Loop (HITL)**: la Inteligencia Artificial asiste proponiendo código, optimizaciones y pruebas en un bucle continuo de retroalimentación, mientras que el desarrollador humano valida cada cambio y ejerce la toma de decisiones finales en momentos críticos (migraciones de esquemas Prisma, seguridad, autorizaciones y despliegue a producción).
 
 ## 2.2 Estado de Cumplimiento por Fases
 
@@ -884,39 +900,55 @@ El desarrollo del proyecto incorpora herramientas de asistencia de Inteligencia 
 
 ---
 
-## 14.2 Protocolo de Validación Humana en el Bucle (*Human-in-the-Loop - HITL*)
+## 14.2 Protocolo de Gobernanza Human-in-the-Loop (HITL)
 
-El proyecto establece un modelo de gobernanza donde **ningún agente de Inteligencia Artificial tiene autonomía de despliegue directo**. Todo código o cambio sugerido por IA debe atravesar **5 compuertas obligatorias de validación humana**:
+### 14.2.1 Definición y Principio Rector
+La técnica **Human-in-the-Loop (HITL)** o *humano en el bucle* es un enfoque de inteligencia artificial que combina el aprendizaje automático y los modelos generativos con la **supervisión o intervención humana directa**. 
+
+Su objetivo primordial es establecer un **bucle de retroalimentación continuo**: el modelo de IA realiza predicciones, propone soluciones arquitectónicas o automatiza tareas repetitivas, mientras que la persona humana **valida, corrige, refina y toma las decisiones finales en momentos críticos**.
+
+En Kyrios Barber Platform, el paradigma HITL se implementa en dos niveles complementarios:
+
+### 14.2.2 Nivel 1: Desarrollo Asistido y DevOps (Dev-HITL)
+Gobernanza sobre el ciclo de vida del software y el código fuente:
 
 ```
-[ Requerimiento / Solicitud ]
-             │
-             ▼
-[ Agente de IA ] ──► Plantea propuesta técnica de arquitectura y endpoints
-             │
-             ▼
-[ COMPUERTA 1: Aprobación de Plan ] ────► El desarrollador humano revisa y autoriza el enfoque
-             │
-             ▼
-[ Agente de IA ] ──► Escribe código TypeScript, DTOs y pruebas unitarias
-             │
-             ▼
-[ COMPUERTA 2: Revisión de Código ] ────► El humano inspecciona `git diff` buscando anomalías
-             │
-             ▼
-[ COMPUERTA 3: Calidad y Tests ] ───────► El humano ejecuta `npm test` y compila (`build`)
-             │
-             ▼
-[ COMPUERTA 4: Migración de BD ] ───────► El humano audita `migration.sql` y corre `prisma migrate`
-             │
-             ▼
-[ COMPUERTA 5: Despliegue Producción ] ─► El humano aprueba el commit, merge y push a Railway
+  ┌────────────────────────────────────────────────────────┐
+  │         BUCLE CONTINUO DE DESARROLLO (Dev-HITL)        │
+  └────────────────────────────────────────────────────────┘
+              │                               ▲
+  1. Propone DTOs, Servicios,                 │ 2. Ejecuta tests locales,
+     Controladores y Tests                    │    detecta desviaciones y refina
+              ▼                               │
+  ┌──────────────────────┐        ┌──────────────────────┐
+  │     MODELO DE IA     │        │ DESARROLLADOR HUMANO │
+  │   (Predice / Genera) │        │ (Supervisa / Corrige)│
+  └──────────────────────┘        └──────────────────────┘
+              │
+              ▼ [Momento Crítico Detectado]
+  ┌──────────────────────────────────────────────────────┐
+  │           DECISIÓN FINAL EN MOMENTOS CRÍTICOS        │
+  │  1. Alteración de esquemas Prisma / Migraciones SQL  │
+  │  2. Asignación de roles de seguridad (RBAC / Tenants)│
+  │  3. Invocación de red o comandos destructivos        │
+  │  4. Publicación en Git y despliegue en producción    │
+  └──────────────────────────────────────────────────────┘
+              │ [Aprobación Explícita Requerida]
+              ▼
+        [ Entorno de Producción / Staging ]
 ```
 
-### Directivas de la Gobernanza HITL:
-1. **La IA como Asistente Técnico:** La IA actúa como un copiloto de programación enfocado en rapidez y calidad de sintaxis; la responsabilidad de diseño arquitectónico y lógica de negocio permanece 100% en el desarrollador humano.
-2. **Bloqueo de Modificaciones Destructivas:** La IA tiene prohibido ejecutar o sugerir comandos de restablecimiento de base de datos destructivos (`prisma db push --force-reset`) en entornos compartidos o productivos.
+### 14.2.3 Nivel 2: Dominio de Negocio y Plataforma (App-HITL)
+Gobernanza dentro de la operativa de las barberías:
+1. **Asistencia sin Autonomía Total:** Si la plataforma incorpora modelos predictivos (como estimación de demanda, sugerencia de franjas horarias o redacción asistida de recordatorios de WhatsApp), el sistema **NUNCA** toma acciones unilaterales de alto impacto sin confirmación.
+2. **Decisiones Críticas en Manos del Staff:** En situaciones de sobrecupo, cancelaciones extraordinarias, bloqueos de agenda o excepciones en el cobro de comisiones, la decisión final recae de forma exclusiva en el **administrador o barbero humano**.
+3. **Auditabilidad y Trazabilidad:** Toda acción sugerida por automatizaciones o algoritmos queda registrada en los logs de auditoría estructurados (`audit.log`) con indicación del usuario humano que autorizó la operación.
+
+### 14.2.4 Directivas de Gobernanza HITL:
+1. **La IA como Asistente Técnico:** La IA actúa como un copiloto de ingeniería enfocado en rapidez, consistencia de sintaxis y cobertura de pruebas; la responsabilidad de diseño arquitectónico y lógica de negocio permanece 100% en el desarrollador humano.
+2. **Bloqueo de Modificaciones Destructivas:** La IA tiene estrictamente prohibido ejecutar o sugerir comandos de restablecimiento de base de datos destructivos (`prisma db push --force-reset` o `DROP TABLE`) en entornos compartidos o productivos.
 3. **Auditoría Continua de Migraciones:** Cada columna o tabla agregada (como `temaKey` en `PerfilNegocio`) debe ser inspeccionada por el humano en su archivo SQL correspondiente antes de ejecutarse en el motor de base de datos.
+4. **Ningún Push Autónomo:** Todo comando de publicación hacia repositorios remotos (`git push`) o plataformas de despliegue (Railway) requiere autorización humana previa e inequívoca.
 
 ---
 
