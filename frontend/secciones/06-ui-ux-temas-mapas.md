@@ -37,10 +37,22 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 * Tarjetas diarias con las citas asignadas ordenadas cronológicamente.
 * Acciones de 1 clic: "Marcar como Completada" o "No Asistió".
 
-### 4. Configuración del Negocio y Asistente GPS (`/:slug/configuracion`)
-* Botón "📍 Usar mi ubicación actual" mediante `navigator.geolocation` para capturar coordenadas GPS automáticamente desde el local.
-* Extractor inteligente que analiza enlaces de Google Maps (`@lat,lng`, `?q=lat,lng`) o pares decimales pegados.
-* Selector visual de temas con vista previa inmediata.
+### 4. Configuración del Negocio y Pestañas SaaS (`/:slug/configuracion`)
+* **Pestaña 1 · Información Comercial y Ubicación:**
+  * Asistente GPS interactivo ("📍 Usar mi ubicación actual" mediante `navigator.geolocation`).
+  * Extractor inteligente de enlaces de Google Maps y coordenadas decimales.
+  * Formulario de dirección oficial, ciudad, departamento y referencia de llegada.
+* **Pestaña 2 · Diseño y Recursos de Marca:**
+  * Selector interactivo de temas visuales con persistencia en backend (`temaKey`).
+  * Gestión física y previsualización de Banner principal (PNG) y logos vectoriales (SVG).
+* **Pestaña 3 · Redes Sociales Oficiales (Fase 18):**
+  * Selector visual con logos vectoriales oficiales (Instagram, WhatsApp, TikTok, Facebook, Otro).
+  * Validación preventiva de duplicados con badge `Conectada`.
+  * Interruptor de visibilidad (`Visible / Oculta`) para pausar canales sin perder su URL.
+  * Botón de eliminación física con confirmación contextual (`ConfirmDialog`).
+  * Live Preview de píldora de clientes y botón "Pegar enlace".
+* **Integración en Portal Público:**
+  * Pie de página (`HomeFooter.tsx`) y contexto de marca (`TenantBrandContext.tsx`) renderizan automáticamente las redes activas del tenant con enlaces seguros.
 
 ### 5. Directorio Global y Onboarding (`/plataforma` y `/explorar`)
 * Vista de todas las barberías activas en el sistema con métricas globales.

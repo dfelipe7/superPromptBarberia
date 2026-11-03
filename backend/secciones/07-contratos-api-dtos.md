@@ -11,15 +11,27 @@
 ## 9.2 Endpoints Principales por Módulo
 
 ### 1. Directorio Global y Plataforma SaaS (`/plataforma`)
-* `GET /plataforma/negocios` ➔ Lista todas las barberías registradas con sus métricas en tiempo real (barberos, servicios, citas, clientes) y estado.
+* `GET /plataforma/negocios/publico` ➔ Consulta pública y ligera de barberías activas para el Hub de exploración (sin métricas internas ni datos privados).
+* `GET /plataforma/negocios` ➔ Lista administrativa de barberías con métricas completas en tiempo real (@UseGuards(PlataformaAdminGuard)).
+* `POST /plataforma/negocios` ➔ Da de alta un nuevo tenant en la plataforma (@UseGuards(PlataformaAdminGuard)).
+* `PATCH /plataforma/negocios/:id/estado` ➔ Activa o suspende una barbería en la plataforma (@UseGuards(PlataformaAdminGuard)).
 * `POST /plataforma/negocios` ➔ Da de alta un nuevo tenant en la plataforma, inicializa su perfil y asocia atómicamente a su Superadmin fundador.
 * `PATCH /plataforma/negocios/:id/estado` ➔ Activa o suspende una barbería en la plataforma (`ACTIVO` / `INACTIVO`).
 
-### 2. Identidad y Perfil de Sede (`/negocios/perfil`)
-* `GET /negocios/perfil/publico` ➔ Consulta pública de la identidad de la sede (nombre, lema, dirección, coordenadas, radar y tema visual `temaKey`).
-* `GET /negocios/perfil/gestion` ➔ Consulta administrativa del perfil para configuración del negocio.
-* `PUT /negocios/perfil` ➔ Actualiza lema, dirección, coordenadas GPS (`latitud`, `longitud`) y tema visual (`temaKey`).
-* `POST /negocios/perfil/archivos/:tipo` ➔ Sube archivos de marca validados (favicon, banner, logo blanco, logo negro).
+
+### 2. Identidad y Perfil de Sede (`/perfil-negocio`)
+* `GET /perfil-negocio` ➔ Consulta pública de la identidad de la sede (nombre, lema, dirección, coordenadas, radar y tema visual `temaKey`).
+* `GET /perfil-negocio/gestion` ➔ Consulta administrativa del perfil para configuración del negocio.
+* `PUT /perfil-negocio` ➔ Actualiza lema, dirección, coordenadas GPS (`latitud`, `longitud`) y tema visual (`temaKey`).
+* `POST /perfil-negocio/recursos/:tipo` ➔ Sube archivos de marca validados (favicon, banner, logo blanco, logo negro).
+* `DELETE /perfil-negocio/recursos/:tipo` ➔ Elimina un recurso de marca individual.
+
+### 2.1 Redes Sociales Oficiales del Negocio (`/perfil-negocio/redes-sociales`) (Fase 18)
+* `GET /perfil-negocio/redes-sociales` ➔ Consulta pública de las redes sociales activas (`activo: true`) ordenadas por prioridad. Admite `?todas=true` para panel administrativo (incluye redes pausadas).
+* `PUT /perfil-negocio/redes-sociales` ➔ Reemplazo suave masivo (`bulk upsert`): desactiva las ausentes y crea o actualiza las presentes preservando su ID histórico.
+* `PATCH /perfil-negocio/redes-sociales/:id` ➔ Actualiza parcialmente `url`, `orden` o `nombre` (este último solo para tipo `OTRO`).
+* `DELETE /perfil-negocio/redes-sociales/:id` ➔ Pausa la visibilidad (`activo: false`) sin borrar el registro. Si se pasa `?definitivo=true`, ejecuta borrado físico en base de datos.
+* `PATCH /perfil-negocio/redes-sociales/:id/activar` ➔ Reactiva una red previamente pausada (`activo: true`).
 
 ### 3. Autenticación de Personal y Clientes
 * `POST /auth/google` ➔ Inicia sesión de personal administrativo/barberos.
@@ -34,6 +46,8 @@
 * `POST /usuarios/barberos` ➔ Vincula un nuevo barbero a la sede con comisión pactada.
 * `PATCH /usuarios/barberos/:id/comision` ➔ Actualiza la comisión del barbero para este tenant.
 * `POST /usuarios/administradores` ➔ Asigna membresía de administrador a un usuario en la sede.
+* `PATCH /usuarios/:id` ➔ Actualiza datos operativos del usuario en la sede. El email es inmutable a nivel de sede para prevenir account takeover.
+* `PATCH /usuarios/:id/estado` ➔ Cambia el estado de membresía en la sede con parámetro obligatorio `tipo: 'administrador' | 'barbero' | 'ambos'` (no suspende la cuenta global).
 
 ### 5. Catálogo de Servicios (`/servicios`)
 * `GET /servicios` ➔ Lista pública de servicios activos de la barbería con precio y duración.
