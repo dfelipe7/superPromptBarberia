@@ -4,17 +4,20 @@ on:
   push:
     branches: [ master, main ]
     paths:
-      - 'superprompt/secciones/**'
-      - 'superprompt/build.py'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'build.py'
   pull_request:
     branches: [ master, main ]
     paths:
-      - 'superprompt/secciones/**'
+      - 'backend/**'
+      - 'frontend/**'
+      - 'build.py'
   workflow_dispatch:
 
 jobs:
   build-superprompt:
-    name: Compile Master Superprompt
+    name: Compile and Validate Modular Superprompts
     runs-on: ubuntu-latest
     steps:
       - name: Descargar repositorio
@@ -26,9 +29,11 @@ jobs:
           python-version: '3.11'
 
       - name: Ejecutar Compilador de Superprompt
-        run: python superprompt/build.py
+        run: python build.py
 
-      - name: Validar existencia de SUPERPROMPT.md
+      - name: Validar existencia de los Superprompts
         run: |
           test -f SUPERPROMPT.md || exit 1
-          echo "SUPERPROMPT compilado y validado exitosamente en GitHub Actions."
+          test -f backend/SUPERPROMPT_BACKEND.md || exit 1
+          test -f frontend/SUPERPROMPT_FRONTEND.md || exit 1
+          echo "SUPERPROMPT Maestro, Backend y Frontend compilados y validados exitosamente en GitHub Actions."
