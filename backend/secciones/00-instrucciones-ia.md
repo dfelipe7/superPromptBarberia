@@ -1,7 +1,7 @@
 # 00. Instrucciones de Ejecución, Directivas de IA y Protocolo HITL
 
 ## 0.1 Objetivo General
-Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Kyrios Barber Platform (SaaS Multitenant)**. Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
+Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Plataforma SaaS Multitenant para Barberías (Barber SaaS Platform)**, concebida como una solución agnóstica y multi-inquilino donde cualquier establecimiento de barbería puede operar de manera autónoma (utilizando a *Kyrios Barber* como caso de estudio e inquilino piloto inicial). Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
 
 ## 0.2 Terminología Normativa (RFC 2119)
 * **DEBE / OBLIGATORIO (SHALL / MUST):** Indica una exigencia absoluta del sistema de ingeniería.

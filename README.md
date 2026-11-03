@@ -1,6 +1,6 @@
-# Kyrios Barber Platform — Superprompt Modular SaaS Multitenant
+# Plataforma SaaS Multitenant para Barberías — Superprompt Modular
 
-Repositorio oficial de especificación de ingeniería y prompts ejecutables para **Kyrios Barber Platform (SaaS Multitenant)**.
+Repositorio oficial de especificación de ingeniería y prompts ejecutables para la **Plataforma SaaS Multitenant de Gestión para Barberías** (con *Kyrios Barber* como inquilino piloto inicial).
 
 Este repositorio alberga la arquitectura viva (*Living Architecture Specification*) y los prompts modulares optimizados para ser interpretados por agentes de Inteligencia Artificial (IA) o desarrolladores para la construcción, auditoría y evolución del sistema.
 

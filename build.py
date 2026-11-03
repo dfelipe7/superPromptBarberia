@@ -59,7 +59,7 @@ def compilar_directorio(titulo, subtitulo, secciones_dir, salida):
 def compilar_master(salida):
     print("Compilando Master unificado desde Backend y Frontend...")
     header = [
-        "# SUPERPROMPT MAESTRO GLOBAL - KYRIOS BARBER SAAS\n\n",
+        "# SUPERPROMPT MAESTRO GLOBAL - PLATAFORMA SAAS PARA BARBERIAS\n\n",
         "> **Especificación maestra unificada Full-Stack compilada automáticamente a partir de los módulos independientes de `backend/` y `frontend/`.**\n\n",
         "> **ESTADO DE LA ESPECIFICACIÓN: ESPECIFICACIÓN VIVA (LIVING SPECIFICATION)**\n",
         "> Este documento representa con fidelidad milimétrica el estado del sistema hasta la fase actual y continúa evolucionando activamente a medida que se completan los hitos del roadmap y las siguientes fases de desarrollo.\n\n",
@@ -104,7 +104,7 @@ def main():
     
     # 1. Backend
     compilar_directorio(
-        "SUPERPROMPT BACKEND - KYRIOS BARBER SAAS",
+        "SUPERPROMPT BACKEND - PLATAFORMA SAAS PARA BARBERIAS",
         "Especificación especializada para Backend (NestJS 11 + Prisma ORM 7 + MySQL 8 + Seguridad OWASP).",
         BACKEND_SECCIONES,
         BACKEND_OUTPUT
@@ -112,7 +112,7 @@ def main():
     
     # 2. Frontend
     compilar_directorio(
-        "SUPERPROMPT FRONTEND - KYRIOS BARBER SAAS",
+        "SUPERPROMPT FRONTEND - PLATAFORMA SAAS PARA BARBERIAS",
         "Especificación especializada para Frontend (React 19 + Vite 6 + React Router v7 + Temas Dinámicos).",
         FRONTEND_SECCIONES,
         FRONTEND_OUTPUT

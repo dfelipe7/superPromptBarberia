@@ -1,4 +1,4 @@
-# SUPERPROMPT MAESTRO GLOBAL - KYRIOS BARBER SAAS
+# SUPERPROMPT MAESTRO GLOBAL - PLATAFORMA SAAS PARA BARBERIAS
 
 > **Especificación maestra unificada Full-Stack compilada automáticamente a partir de los módulos independientes de `backend/` y `frontend/`.**
 
@@ -23,7 +23,7 @@
 # PARTE I: ESPECIFICACIÓN DE BACKEND (API REST, PRISMA & PERSISTENCIA)
 # =========================================================================
 
-# SUPERPROMPT BACKEND - KYRIOS BARBER SAAS
+# SUPERPROMPT BACKEND - PLATAFORMA SAAS PARA BARBERIAS
 
 > **Especificación especializada para Backend (NestJS 11 + Prisma ORM 7 + MySQL 8 + Seguridad OWASP).**
 
@@ -61,7 +61,7 @@
 # 00. Instrucciones de Ejecución, Directivas de IA y Protocolo HITL
 
 ## 0.1 Objetivo General
-Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Kyrios Barber Platform (SaaS Multitenant)**. Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
+Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Plataforma SaaS Multitenant para Barberías (Barber SaaS Platform)**, concebida como una solución agnóstica y multi-inquilino donde cualquier establecimiento de barbería puede operar de manera autónoma (utilizando a *Kyrios Barber* como caso de estudio e inquilino piloto inicial). Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
 
 ## 0.2 Terminología Normativa (RFC 2119)
 * **DEBE / OBLIGATORIO (SHALL / MUST):** Indica una exigencia absoluta del sistema de ingeniería.
@@ -140,10 +140,13 @@ Su objetivo primordial es crear un **bucle de retroalimentación continuo (*cont
 
 # 01. Contexto Organizacional y Definición del Problema
 
-## 1.1 Contexto de la Organización y Evolución a SaaS Multitenant
-**Kyrios Barber** nació como una solución integral para **Kyrios Studio**, un prestigioso establecimiento comercial de barbería y cuidado estético masculino ubicado en la ciudad de Popayán, Colombia. La empresa presta servicios especializados de corte de cabello, arreglo de barba, tratamientos capilares y venta de productos cosméticos para caballeros, contando con un equipo de barberos profesionales que operan bajo un esquema de porcentaje de comisión por servicio prestado.
+## 1.1 Contexto de Negocio y Generalización a Plataforma SaaS Multitenant
+El proyecto tuvo su génesis en un caso de estudio real: la barbería **Kyrios Studio** (Popayán, Colombia), la cual requería modernizar su operativa de agendamiento y control de comisiones. Sin embargo, para responder a los estándares modernos de ingeniería de software y escalabilidad comercial, **la arquitectura fue completamente refactorizada y generalizada como una Plataforma SaaS Multitenant para la Industria de Barberías**.
 
-Debido al éxito operativo y a la necesidad de escalar el modelo a múltiples sedes y barberías aliadas, el sistema evolucionó hacia una **Plataforma SaaS Multitenant (Multi-Inquilino)**. Cada barbería o sede opera como un **Tenant autónomo** con su propia marca, catálogo de servicios, equipo de barberos, horarios, paleta de colores corporativa y base de clientes, compartiendo de manera segura una infraestructura cloud común con estricto aislamiento de datos.
+Bajo este paradigma, el sistema **no está atado a ninguna barbería en particular**:
+* **Kyrios Barber** funge exclusivamente como el **inquilino piloto y caso de validación inicial** del sistema.
+* **Cualquier barbería, salón masculino, franquicia o sede independiente** puede darse de alta en la plataforma (mediante el hub global `/plataforma` o `POST /plataforma/negocios`).
+* Cada negocio opera como un **Tenant 100% autónomo**: dispone de su propia URL pública (`/:slug`), su propio logotipo, su propio lema, sus coordenadas geográficas, su propia paleta de colores y tema visual dinámico (`temaKey`), su catálogo de servicios independientes, su equipo de barberos con comisiones pactadas y su aislamiento criptográfico de sesiones y citas.
 
 ## 1.2 Definición del Problema Central
 Históricamente, la operación diaria de las barberías se ha gestionado de forma manual y fragmentada mediante cuadernos de apuntes físicos y conversaciones dispersas en aplicaciones de mensajería (WhatsApp personal de cada barbero). Este modelo genera fallas operativas críticas:
@@ -158,7 +161,7 @@ Históricamente, la operación diaria de las barberías se ha gestionado de form
    Riesgo de fuga o contaminación cruzada de datos de clientes, ingresos y configuraciones entre diferentes sucursales o franquicias al no contar con un aislamiento estricto por inquilino.
 
 ## 1.3 Solución Planteada
-Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
+Diseñar, construir e implementar una plataforma web SaaS generalizada para barberías (*Barber SaaS Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
 * El agendamiento autónomo de citas en línea por parte de los clientes (registrados o invitados) bajo la URL propia de cada barbería (`/:slug/reservar`).
 * El control milimétrico de la disponibilidad, descansos y bloqueos de agenda de cada barbero por sede.
 * El despacho automatizado de confirmaciones y recordatorios a través de WhatsApp (Baileys) con sesiones aisladas por negocio y correo electrónico.
@@ -1534,7 +1537,7 @@ La técnica **Human-in-the-Loop (HITL)** o *humano en el bucle* es un enfoque de
 
 Su objetivo primordial es establecer un **bucle de retroalimentación continuo**: el modelo de IA realiza predicciones, propone soluciones arquitectónicas o automatiza tareas repetitivas, mientras que la persona humana **valida, corrige, refina y toma las decisiones finales en momentos críticos**.
 
-En Kyrios Barber Platform, el paradigma HITL se implementa en dos niveles complementarios:
+En la Plataforma SaaS para Barberías, el paradigma HITL se implementa en dos niveles complementarios:
 
 ### 14.2.2 Nivel 1: Desarrollo Asistido y DevOps (Dev-HITL)
 Gobernanza sobre el ciclo de vida del software y el código fuente:
@@ -1657,7 +1660,7 @@ Cualquier agente de IA o ingeniero que reciba este Superprompt **DEBE seguir est
 PORT=3000
 NODE_ENV=development
 DATABASE_URL="mysql://root:password@localhost:3306/bd_barberia_multitenant_dev"
-JWT_SECRET="kyrios-secret-key-32-chars-min-length-required"
+JWT_SECRET="barber-saas-secret-key-32-chars-min-length-required"
 JWT_EXPIRATION="8h"
 GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 FRONTEND_URL="http://localhost:5173"
@@ -1665,7 +1668,7 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USER="alertas@barberia.com"
 SMTP_PASS="app-password-16-chars"
-SMTP_FROM="Alertas Kyrios <alertas@barberia.com>"
+SMTP_FROM="Alertas Plataforma <alertas@barberia.com>"
 ```
 
 **2. `Barberia-Frontend/.env`:**
@@ -1742,7 +1745,7 @@ VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 # PARTE II: ESPECIFICACIÓN DE FRONTEND (CLIENTE WEB REACT 19 & EXPERIENCIA)
 # =========================================================================
 
-# SUPERPROMPT FRONTEND - KYRIOS BARBER SAAS
+# SUPERPROMPT FRONTEND - PLATAFORMA SAAS PARA BARBERIAS
 
 > **Especificación especializada para Frontend (React 19 + Vite 6 + React Router v7 + Temas Dinámicos).**
 
@@ -1779,7 +1782,7 @@ VITE_GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 # 00. Instrucciones de Ejecución, Directivas de IA y Protocolo HITL
 
 ## 0.1 Objetivo General
-Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Kyrios Barber Platform (SaaS Multitenant)**. Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
+Este documento establece las directrices normativas y técnicas para el desarrollo, auditoría y mantenimiento del sistema **Plataforma SaaS Multitenant para Barberías (Barber SaaS Platform)**, concebida como una solución agnóstica y multi-inquilino donde cualquier establecimiento de barbería puede operar de manera autónoma (utilizando a *Kyrios Barber* como caso de estudio e inquilino piloto inicial). Cualquier agente de Inteligencia Artificial (IA) o desarrollador de software que interactúe con este repositorio **DEBE** acatar estrictamente las reglas aquí descritas para garantizar la coherencia arquitectónica, la integridad de datos, el aislamiento multi-inquilino (*tenant isolation*) y el blindaje de seguridad.
 
 ## 0.2 Terminología Normativa (RFC 2119)
 * **DEBE / OBLIGATORIO (SHALL / MUST):** Indica una exigencia absoluta del sistema de ingeniería.
@@ -1858,10 +1861,13 @@ Su objetivo primordial es crear un **bucle de retroalimentación continuo (*cont
 
 # 01. Contexto Organizacional y Definición del Problema
 
-## 1.1 Contexto de la Organización y Evolución a SaaS Multitenant
-**Kyrios Barber** nació como una solución integral para **Kyrios Studio**, un prestigioso establecimiento comercial de barbería y cuidado estético masculino ubicado en la ciudad de Popayán, Colombia. La empresa presta servicios especializados de corte de cabello, arreglo de barba, tratamientos capilares y venta de productos cosméticos para caballeros, contando con un equipo de barberos profesionales que operan bajo un esquema de porcentaje de comisión por servicio prestado.
+## 1.1 Contexto de Negocio y Generalización a Plataforma SaaS Multitenant
+El proyecto tuvo su génesis en un caso de estudio real: la barbería **Kyrios Studio** (Popayán, Colombia), la cual requería modernizar su operativa de agendamiento y control de comisiones. Sin embargo, para responder a los estándares modernos de ingeniería de software y escalabilidad comercial, **la arquitectura fue completamente refactorizada y generalizada como una Plataforma SaaS Multitenant para la Industria de Barberías**.
 
-Debido al éxito operativo y a la necesidad de escalar el modelo a múltiples sedes y barberías aliadas, el sistema evolucionó hacia una **Plataforma SaaS Multitenant (Multi-Inquilino)**. Cada barbería o sede opera como un **Tenant autónomo** con su propia marca, catálogo de servicios, equipo de barberos, horarios, paleta de colores corporativa y base de clientes, compartiendo de manera segura una infraestructura cloud común con estricto aislamiento de datos.
+Bajo este paradigma, el sistema **no está atado a ninguna barbería en particular**:
+* **Kyrios Barber** funge exclusivamente como el **inquilino piloto y caso de validación inicial** del sistema.
+* **Cualquier barbería, salón masculino, franquicia o sede independiente** puede darse de alta en la plataforma (mediante el hub global `/plataforma` o `POST /plataforma/negocios`).
+* Cada negocio opera como un **Tenant 100% autónomo**: dispone de su propia URL pública (`/:slug`), su propio logotipo, su propio lema, sus coordenadas geográficas, su propia paleta de colores y tema visual dinámico (`temaKey`), su catálogo de servicios independientes, su equipo de barberos con comisiones pactadas y su aislamiento criptográfico de sesiones y citas.
 
 ## 1.2 Definición del Problema Central
 Históricamente, la operación diaria de las barberías se ha gestionado de forma manual y fragmentada mediante cuadernos de apuntes físicos y conversaciones dispersas en aplicaciones de mensajería (WhatsApp personal de cada barbero). Este modelo genera fallas operativas críticas:
@@ -1876,7 +1882,7 @@ Históricamente, la operación diaria de las barberías se ha gestionado de form
    Riesgo de fuga o contaminación cruzada de datos de clientes, ingresos y configuraciones entre diferentes sucursales o franquicias al no contar con un aislamiento estricto por inquilino.
 
 ## 1.3 Solución Planteada
-Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
+Diseñar, construir e implementar una plataforma web SaaS generalizada para barberías (*Barber SaaS Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
 * El agendamiento autónomo de citas en línea por parte de los clientes (registrados o invitados) bajo la URL propia de cada barbería (`/:slug/reservar`).
 * El control milimétrico de la disponibilidad, descansos y bloqueos de agenda de cada barbero por sede.
 * El despacho automatizado de confirmaciones y recordatorios a través de WhatsApp (Baileys) con sesiones aisladas por negocio y correo electrónico.
@@ -2289,7 +2295,7 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 * **Sistema de Temas Dinámicos (`data-tenant-theme`):**
   * Cada barbería elige su tema visual en la configuración del negocio, el cual se persiste en base de datos (`PerfilNegocio.temaKey`).
   * `TenantBrandContext` detecta el tema activo e inyecta dinámicamente las variables CSS en el elemento raíz:
-    * `clasico-azul`: Azul Zafiro corporativo (Kyrios Oficial · `#0071BC`).
+    * `clasico-azul`: Azul Zafiro corporativo (Preset Clásico Tradicional · `#0071BC`).
     * `cyber-lime`: Verde neón eléctrico urbano con estética deportiva (`#22c55e`).
     * `oro-vip`: Dorado Champagne vintage de alta gama (`#D4AF37`).
     * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).
@@ -2622,7 +2628,7 @@ La técnica **Human-in-the-Loop (HITL)** o *humano en el bucle* es un enfoque de
 
 Su objetivo primordial es establecer un **bucle de retroalimentación continuo**: el modelo de IA realiza predicciones, propone soluciones arquitectónicas o automatiza tareas repetitivas, mientras que la persona humana **valida, corrige, refina y toma las decisiones finales en momentos críticos**.
 
-En Kyrios Barber Platform, el paradigma HITL se implementa en dos niveles complementarios:
+En la Plataforma SaaS para Barberías, el paradigma HITL se implementa en dos niveles complementarios:
 
 ### 14.2.2 Nivel 1: Desarrollo Asistido y DevOps (Dev-HITL)
 Gobernanza sobre el ciclo de vida del software y el código fuente:
@@ -2745,7 +2751,7 @@ Cualquier agente de IA o ingeniero que reciba este Superprompt **DEBE seguir est
 PORT=3000
 NODE_ENV=development
 DATABASE_URL="mysql://root:password@localhost:3306/bd_barberia_multitenant_dev"
-JWT_SECRET="kyrios-secret-key-32-chars-min-length-required"
+JWT_SECRET="barber-saas-secret-key-32-chars-min-length-required"
 JWT_EXPIRATION="8h"
 GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 FRONTEND_URL="http://localhost:5173"
@@ -2753,7 +2759,7 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USER="alertas@barberia.com"
 SMTP_PASS="app-password-16-chars"
-SMTP_FROM="Alertas Kyrios <alertas@barberia.com>"
+SMTP_FROM="Alertas Plataforma <alertas@barberia.com>"
 ```
 
 **2. `Barberia-Frontend/.env`:**

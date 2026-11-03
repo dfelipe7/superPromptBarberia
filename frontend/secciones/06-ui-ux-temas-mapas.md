@@ -6,7 +6,7 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 * **Sistema de Temas Dinámicos (`data-tenant-theme`):**
   * Cada barbería elige su tema visual en la configuración del negocio, el cual se persiste en base de datos (`PerfilNegocio.temaKey`).
   * `TenantBrandContext` detecta el tema activo e inyecta dinámicamente las variables CSS en el elemento raíz:
-    * `clasico-azul`: Azul Zafiro corporativo (Kyrios Oficial · `#0071BC`).
+    * `clasico-azul`: Azul Zafiro corporativo (Preset Clásico Tradicional · `#0071BC`).
     * `cyber-lime`: Verde neón eléctrico urbano con estética deportiva (`#22c55e`).
     * `oro-vip`: Dorado Champagne vintage de alta gama (`#D4AF37`).
     * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).

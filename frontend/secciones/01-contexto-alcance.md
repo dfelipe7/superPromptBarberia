@@ -1,9 +1,12 @@
 # 01. Contexto Organizacional y Definición del Problema
 
-## 1.1 Contexto de la Organización y Evolución a SaaS Multitenant
-**Kyrios Barber** nació como una solución integral para **Kyrios Studio**, un prestigioso establecimiento comercial de barbería y cuidado estético masculino ubicado en la ciudad de Popayán, Colombia. La empresa presta servicios especializados de corte de cabello, arreglo de barba, tratamientos capilares y venta de productos cosméticos para caballeros, contando con un equipo de barberos profesionales que operan bajo un esquema de porcentaje de comisión por servicio prestado.
+## 1.1 Contexto de Negocio y Generalización a Plataforma SaaS Multitenant
+El proyecto tuvo su génesis en un caso de estudio real: la barbería **Kyrios Studio** (Popayán, Colombia), la cual requería modernizar su operativa de agendamiento y control de comisiones. Sin embargo, para responder a los estándares modernos de ingeniería de software y escalabilidad comercial, **la arquitectura fue completamente refactorizada y generalizada como una Plataforma SaaS Multitenant para la Industria de Barberías**.
 
-Debido al éxito operativo y a la necesidad de escalar el modelo a múltiples sedes y barberías aliadas, el sistema evolucionó hacia una **Plataforma SaaS Multitenant (Multi-Inquilino)**. Cada barbería o sede opera como un **Tenant autónomo** con su propia marca, catálogo de servicios, equipo de barberos, horarios, paleta de colores corporativa y base de clientes, compartiendo de manera segura una infraestructura cloud común con estricto aislamiento de datos.
+Bajo este paradigma, el sistema **no está atado a ninguna barbería en particular**:
+* **Kyrios Barber** funge exclusivamente como el **inquilino piloto y caso de validación inicial** del sistema.
+* **Cualquier barbería, salón masculino, franquicia o sede independiente** puede darse de alta en la plataforma (mediante el hub global `/plataforma` o `POST /plataforma/negocios`).
+* Cada negocio opera como un **Tenant 100% autónomo**: dispone de su propia URL pública (`/:slug`), su propio logotipo, su propio lema, sus coordenadas geográficas, su propia paleta de colores y tema visual dinámico (`temaKey`), su catálogo de servicios independientes, su equipo de barberos con comisiones pactadas y su aislamiento criptográfico de sesiones y citas.
 
 ## 1.2 Definición del Problema Central
 Históricamente, la operación diaria de las barberías se ha gestionado de forma manual y fragmentada mediante cuadernos de apuntes físicos y conversaciones dispersas en aplicaciones de mensajería (WhatsApp personal de cada barbero). Este modelo genera fallas operativas críticas:
@@ -18,7 +21,7 @@ Históricamente, la operación diaria de las barberías se ha gestionado de form
    Riesgo de fuga o contaminación cruzada de datos de clientes, ingresos y configuraciones entre diferentes sucursales o franquicias al no contar con un aislamiento estricto por inquilino.
 
 ## 1.3 Solución Planteada
-Diseñar, construir e implementar una plataforma web integral (*Kyrios Barber Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
+Diseñar, construir e implementar una plataforma web SaaS generalizada para barberías (*Barber SaaS Platform*) con arquitectura cliente-servidor desacoplada y soporte nativo Multi-Tenant que automatice:
 * El agendamiento autónomo de citas en línea por parte de los clientes (registrados o invitados) bajo la URL propia de cada barbería (`/:slug/reservar`).
 * El control milimétrico de la disponibilidad, descansos y bloqueos de agenda de cada barbero por sede.
 * El despacho automatizado de confirmaciones y recordatorios a través de WhatsApp (Baileys) con sesiones aisladas por negocio y correo electrónico.

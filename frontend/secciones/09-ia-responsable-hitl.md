@@ -21,7 +21,7 @@ La técnica **Human-in-the-Loop (HITL)** o *humano en el bucle* es un enfoque de
 
 Su objetivo primordial es establecer un **bucle de retroalimentación continuo**: el modelo de IA realiza predicciones, propone soluciones arquitectónicas o automatiza tareas repetitivas, mientras que la persona humana **valida, corrige, refina y toma las decisiones finales en momentos críticos**.
 
-En Kyrios Barber Platform, el paradigma HITL se implementa en dos niveles complementarios:
+En la Plataforma SaaS para Barberías, el paradigma HITL se implementa en dos niveles complementarios:
 
 ### 14.2.2 Nivel 1: Desarrollo Asistido y DevOps (Dev-HITL)
 Gobernanza sobre el ciclo de vida del software y el código fuente:

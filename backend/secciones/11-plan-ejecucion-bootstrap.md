@@ -70,7 +70,7 @@ Cualquier agente de IA o ingeniero que reciba este Superprompt **DEBE seguir est
 PORT=3000
 NODE_ENV=development
 DATABASE_URL="mysql://root:password@localhost:3306/bd_barberia_multitenant_dev"
-JWT_SECRET="kyrios-secret-key-32-chars-min-length-required"
+JWT_SECRET="barber-saas-secret-key-32-chars-min-length-required"
 JWT_EXPIRATION="8h"
 GOOGLE_CLIENT_ID="your-google-client-id.apps.googleusercontent.com"
 FRONTEND_URL="http://localhost:5173"
@@ -78,7 +78,7 @@ SMTP_HOST="smtp.gmail.com"
 SMTP_PORT=587
 SMTP_USER="alertas@barberia.com"
 SMTP_PASS="app-password-16-chars"
-SMTP_FROM="Alertas Kyrios <alertas@barberia.com>"
+SMTP_FROM="Alertas Plataforma <alertas@barberia.com>"
 ```
 
 **2. `Barberia-Frontend/.env`:**
