@@ -122,3 +122,25 @@ Barberia-Frontend/
 │       ├── layout/                    # MainLayout, Header, Sidebar
 │       └── components/                # ProtectedRoute, ErrorBoundary
 ```
+
+---
+
+## 5.4 Estándares Internacionales de Documentación y Código
+
+Toda la plataforma adhiere formalmente a los estándares de ingeniería de software para documentación técnica y código fuente:
+
+1. **Arc42 & IEEE 1063 (Documentación de Arquitectura y Manuales Técnicos):**
+   * El archivo `README.md` en la raíz de cada repositorio constituye la especificación viva del proyecto.
+   * En el **Backend**, estructura las secciones §1 a §10 de Arc42 (Metas, Restricciones, Alcance y Contexto C4 con diagramas Mermaid, Estrategia de Solución, Bloques de Construcción, Conceptos Transversales, ADRs de Arquitectura y Guía de Despliegue IEEE 1063).
+   * En el **Frontend**, estructura las secciones §1 a §8 de Arc42 con diagramas de flujo de usuario, matriz de los 7 temas multitenant, y ADRs de diseño UI/UX (ADR-F01 a ADR-F03).
+
+2. **OpenAPI Specification (Swagger):**
+   * La API REST se documenta interactivamente con `@nestjs/swagger` exponiendo esquemas de DTOs, códigos de respuesta HTTP y contratos tipados en `/api/docs`.
+   * Por principio de configuración segura (OWASP A05), en producción se controla mediante la variable de entorno `SWAGGER_HABILITADO=true`.
+
+3. **Estándares In-Code Docs (TSDoc / JSDoc):**
+   * **Regla de Oro:** *"El código explica el CÓMO se realiza la acción; los comentarios explican el POR QUÉ de las decisiones de negocio y de seguridad"*.
+   * Toda clase, guardia y método de dominio en servicios (`WhatsAppService`, `ServiciosService`, `NegocioResolucionService`, `ReservasService`, etc.) debe contar con bloques TSDoc formales especificando `@param`, `@returns`, `@throws` y `@remarks` que justifiquen el aislamiento multitenant y la lógica anti-tampering.
+
+4. **Living Documentation:**
+   * La documentación se conserva en Markdown dentro del control de versiones y evoluciona sincronizada con el código fuente en los mismos commits de Git.

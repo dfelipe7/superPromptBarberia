@@ -34,3 +34,21 @@
 ## 8.3 Disponibilidad y Resiliencia
 * **RNF-DISP-01:** La plataforma en la nube (Railway) **DEBE** mantener una tasa de disponibilidad del **99.9%** durante las horas comerciales de la barbería (08:00 a 20:00 hora de Colombia).
 * **RNF-DISP-02:** La sesión de WhatsApp Baileys **DEBE** ponerse en modo reposo (*idle*) automáticamente si no hay actividad en 60 segundos para evitar saturación de memoria en el servidor.
+
+---
+
+## 8.4 Marco Tecnológico de Análisis y Testing de Seguridad
+
+Para garantizar la detección temprana de vulnerabilidades antes del despliegue, el proyecto aplica cuatro disciplinas de testing de seguridad:
+
+1. **SAST (Static Application Security Testing - Caja Blanca):**
+   * Examen estático del código fuente sin ejecución para detectar inyecciones SQL (mitigadas al 100% por Prisma ORM parametrizado), XSS (cabeceras Helmet y escapeo en DOM), desbordamiento de privilegios y validación estricta de DTOs (`ValidationPipe` con `forbidNonWhitelisted`).
+
+2. **SCA (Software Composition Analysis - Análisis de Dependencias):**
+   * Auditoría automatizada de librerías y paquetes de terceros mediante `npm audit` sobre `package-lock.json`. La política del proyecto exige **0 vulnerabilidades de severidad alta o crítica** en las dependencias operativas de producción.
+
+3. **IAST (Interactive Application Security Testing):**
+   * Monitoreo del flujo de datos en tiempo de ejecución durante la ejecución de las suites de pruebas de integración y controladores.
+
+4. **DAST (Dynamic Application Security Testing - Caja Negra):**
+   * Pruebas dinámicas desde el exterior sobre la API desplegada y endpoints en entornos de Staging y Producción (Railway), validando códigos de estado HTTP, contratos OpenAPI y resistencia a inyecciones.
