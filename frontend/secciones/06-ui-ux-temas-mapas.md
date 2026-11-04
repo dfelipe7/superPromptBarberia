@@ -12,7 +12,11 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
     * `sunset-amber`: Naranja sunset cálido (`#ff6b35`).
     * `midnight-cyan`: Azul medianoche con cian eléctrico neón (`#00d2ff`).
     * `crimson-velvet`: Rojo carmesí rubí y terciopelo oscuro (`#ef233c`).
-    * `monochrome-noir`: Minimalismo nórdico blanco y negro de alto contraste (`#ffffff`).
+    * `monochrome-noir`: Minimalismo nórdico blanco y negro de alto contraste (`#000000` / `#ffffff`).
+  * **Blindaje Dual de Contraste (Modo Claro y Modo Oscuro):**
+    * Cada tema soporta inversión dinámica (`[data-theme="light"]` y `[data-theme="dark"]`).
+    * Reglas específicas en `tenant-themes.css` evitan textos blancos forzados (`#ffffff`) sobre fondos claros en botones secundarios (`.btn-outline-secondary`), formularios y tarjetas.
+    * Pestañas de administración (`.usuarios-tabs-container` y pestañas de configuración SaaS) implementan píldoras delimitadas (`btn-light border text-body-secondary bg-body-tertiary` inactiva, `btn-dark text-white shadow-sm` activa), asegurando legibilidad WCAG AA en cualquier tema.
 
 * **Componente de Ubicación con Radar Pulsante:**
   * Mapa embebido con filtro CSS dark mode.
@@ -48,7 +52,7 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 * **Pestaña 3 · Redes Sociales Oficiales (Fase 18):**
   * Selector visual con logos vectoriales oficiales (Instagram, WhatsApp, TikTok, Facebook, Otro).
   * Validación preventiva de duplicados con badge `Conectada`.
-  * Interruptor de visibilidad (`Visible / Oculta`) para pausar canales sin perder su URL.
+  * Interruptor de visibilidad (`Visible / Oculta`) mediante switch CSS puro (`.redes-switch`, 44x24px, slider `#22c55e`), libre de colapsos de flexbox/Bootstrap en dark y light mode.
   * Botón de eliminación física con confirmación contextual (`ConfirmDialog`).
   * Live Preview de píldora de clientes y botón "Pegar enlace".
 * **Integración en Portal Público:**
