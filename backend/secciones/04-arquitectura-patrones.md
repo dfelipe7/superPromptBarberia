@@ -51,6 +51,16 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
      * `CONFIRMADA` ➔ `COMPLETADA`
      * `CONFIRMADA` ➔ `CANCELADA`
      * `CONFIRMADA` ➔ `NO_SHOW` (Inasistencia tras tolerancia)
+10. **Patrón de Aislamiento de Almacenamiento Físico por Inquilino (Uploads Isolation Architecture):**
+   * **Jerarquía en Disco:** La raíz fijada por `UPLOADS_DIR` organiza los archivos en espacios estrictamente separados: `uploads/negocios/<negocioId>/<subcarpeta>/` (`perfil`, `servicios`, `barberos`).
+   * **Rutas Públicas Relativas:** En la base de datos se almacena **exclusivamente** una ruta relativa normalizada `/uploads/negocios/:negocioId/...` con barras diagonales `/` canónicas; nunca rutas absolutas del sistema operativo anfitrión.
+   * **Defensa contra Path Traversal:** La utilidad `estaDentroDelPerfil(rutaAbsoluta, negocioId)` y comparaciones con `path.relative` garantizan que ninguna operación de borrado o lectura pueda acceder a archivos fuera del namespace del negocio autorizado.
+   * **Cabeceras de Sandbox:** Los archivos estáticos se despachan con `X-Content-Type-Options: nosniff` y `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox` para neutralizar ataques XSS a través de archivos vectoriales (SVG).
+11. **Patrón de Sesiones Aisladas de WhatsApp Web Multi-Tenant:**
+   * **Pool en Memoria:** `WhatsAppService` mantiene un `Map<number, SesionWhatsAppNegocio>` donde cada negocio opera su propia instancia independiente de `WASocket` de Baileys con su propio estado de conexión, timers de inactividad de QR y colas de mensajes pendientes.
+   * **Persistencia Aislada:** Las credenciales y claves criptográficas de cada sesión se guardan en directorios físicos separados en disco: `~/.barberia_whatsapp_sessions/negocio_<negocioId>/` o la ruta parametrizada por `WHATSAPP_SESSION_PATH`.
+   * **Colas con Caducidad:** Cada tenant cuenta con su cola de confirmaciones y reprogramaciones pendientes. Si la conexión se pierde, los mensajes se encolan y caducan automáticamente si se supera la hora de inicio de la cita (`horaInicioCitaMs`).
+   * **Migración Transparente:** La sesión histórica de la sede inicial (negocio 1) se migra automáticamente desde `~/.kyrios_whatsapp_session` al nuevo namespace `negocio_1` sin requerir nuevo escaneo de código QR.
 
 ---
 

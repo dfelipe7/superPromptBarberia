@@ -17,11 +17,13 @@
 * **RNF-SEC-07 (A07: Authentication Failures):**  
   La autenticación administrativa y de clientes **DEBE** integrarse con el proveedor oficial Google OAuth 2.0 (SSO) y contar con Throttler / Rate Limiting configurado en 100 peticiones por minuto por IP para mitigar ataques de fuerza bruta.
 * **RNF-SEC-08 (A08: Software or Data Integrity Failures):**  
-  El módulo de subida de archivos (Multer) **DEBE** verificar el tipo MIME real inspeccionando los números mágicos del archivo binario y renombrarlo aleatoriamente mediante UUIDv4 para impedir la ejecución de scripts arbitrarios en el servidor.
+  El módulo de subida de archivos (Multer) **DEBE** verificar el tipo MIME real inspeccionando los números mágicos del archivo binario y renombrarlo aleatoriamente mediante UUIDv4 para impedir la ejecución de scripts arbitrarios en el servidor. Asimismo, el servicio de uploads debe servir los archivos con cabeceras `X-Content-Type-Options: nosniff` y `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox` para neutralizar inyecciones XSS vía SVG y aislar el almacenamiento por tenant (`/uploads/negocios/:negocioId/`).
 * **RNF-SEC-09 (A09: Security Logging and Alerting):**  
-  El sistema **DEBE** registrar los eventos de auditoría en 3 archivos físicos diarios (`audit.log`, `security.log`, `error.log`) mediante Winston y despachar alertas asíncronas por correo SMTP al Superadministrador ante errores 500 y violaciones de rol 403.
+  El sistema **DEBE** registrar los eventos de auditoría en 3 archivos físicos diarios (`audit.log`, `security.log`, `error.log`) mediante Winston y despachar alertas asíncronas por correo SMTP al Superadministrador ante errores 500 y violaciones de rol 403. Los números de teléfono y datos personales (PII) en los logs de WhatsApp y notificaciones **DEBEN** enmascararse obligatoriamente bajo el formato `318****854` mediante `enmascararTelefono`.
 * **RNF-SEC-10 (A10: Mishandling of Exceptional Conditions):**  
   El servidor **DEBE** contar con un filtro global de excepciones que atrape cualquier error no previsto, devolviendo un mensaje genérico sin exponer trazas de código (*stack traces*) y aplicando el principio *Fail-Closed* en la disponibilidad.
+* **RNF-SEC-11 (CORS y Blindaje Estricto de Parámetros HTTP):**  
+  La configuración de CORS (`cors.config.ts`) autoriza exclusivamente las cabeceras requeridas por la arquitectura: `Content-Type`, `Authorization`, `X-Negocio-Slug`, `X-Reservation-Management-Token`. Asimismo, el `ValidationPipe` global con `{ whitelist: true, forbidNonWhitelisted: true }` rechaza inmediatamente con HTTP 400 cualquier parámetro de consulta o cuerpo no declarado en los DTOs oficiales, prohibiendo explícitamente enviar parámetros arbitrarios o de depuración (como `_t`).
 
 ---
 

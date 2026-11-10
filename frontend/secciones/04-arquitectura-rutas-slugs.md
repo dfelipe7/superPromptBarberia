@@ -32,9 +32,12 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
 2. **Patrón Path-Prefix Multitenancy en Frontend:**
    * Las rutas del frontend se prefijan con el slug de la barbería (`/:slug/dashboard`, `/:slug/reservar`, `/:slug/catalogo`).
    * Axios extrae automáticamente el slug de la URL mediante `obtenerNegocioSlugActivo()` y lo envía en la cabecera `X-Negocio-Slug`.
-3. **Aislamiento de Sesiones por Pestaña (Tab Session Isolation):**
+   * **Aislamiento Estricto de Rutas Globales:** En las rutas raíz y de nivel de plataforma (`/`, `/plataforma`, `/explorar`), `obtenerNegocioSlugActivo()` **NUNCA** adopta un tenant residual de la sesión: limpia explícitamente `sessionStorage.removeItem('tab_negocio_slug')` y retorna `null`.
+   * **Protección de Identidad de Marca Corporativa:** El componente `BrandLogo` soporta la directiva `forceKyrios`: en las páginas de plataforma (`LandingPlataformaPage`, `PlataformaHubPage`) se fuerza el renderizado exclusivo de los activos oficiales de Kyrios Platform (`logo-white.svg` / `logo-black.svg`) suprimiendo logotipos personalizados y nombres de tenants previos.
+3. **Aislamiento de Sesiones por Pestaña (Tab Session Isolation) y Protección contra Storage Poisoning:**
    * Los tokens JWT y perfiles se almacenan con claves compuestas en almacenamiento de sesión: `token_barberia_<slug>` y `cliente_token_<slug>`.
    * Un usuario puede tener abiertas múltiples pestañas administrando sedes distintas simultáneamente sin colisión de estado.
+   * **Mitigación de Browser Storage Poisoning (CWE):** Almacenar claves o valores en `localStorage` o `sessionStorage` exige validación estricta. Todo slug interpolado en una clave de almacenamiento **DEBE** sanitizarse validando contra la expresión regular `/^[a-z0-9-]+$/` y codificándose con `encodeURIComponent`. Los identificadores de temas y configuraciones **DEBEN** validarse obligatoriamente contra una lista blanca fija en memoria (`THEMES_ALLOWLIST`) antes de persistir, neutralizando cualquier intento de inyección desde URLs o respuestas de API no confiables.
 4. **Patrón Repositorio (Repository Pattern):**
    * Desacopla la lógica de negocio pura de las consultas de persistencia a la base de datos (`reservas.repository.ts`, `usuarios.repository.ts`, `perfil-negocio.repository.ts`, etc.).
 5. **Patrón Adaptador y Puertos (Ports & Adapters):**

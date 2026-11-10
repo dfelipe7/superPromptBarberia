@@ -387,6 +387,16 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
      * `CONFIRMADA` ➔ `COMPLETADA`
      * `CONFIRMADA` ➔ `CANCELADA`
      * `CONFIRMADA` ➔ `NO_SHOW` (Inasistencia tras tolerancia)
+10. **Patrón de Aislamiento de Almacenamiento Físico por Inquilino (Uploads Isolation Architecture):**
+   * **Jerarquía en Disco:** La raíz fijada por `UPLOADS_DIR` organiza los archivos en espacios estrictamente separados: `uploads/negocios/<negocioId>/<subcarpeta>/` (`perfil`, `servicios`, `barberos`).
+   * **Rutas Públicas Relativas:** En la base de datos se almacena **exclusivamente** una ruta relativa normalizada `/uploads/negocios/:negocioId/...` con barras diagonales `/` canónicas; nunca rutas absolutas del sistema operativo anfitrión.
+   * **Defensa contra Path Traversal:** La utilidad `estaDentroDelPerfil(rutaAbsoluta, negocioId)` y comparaciones con `path.relative` garantizan que ninguna operación de borrado o lectura pueda acceder a archivos fuera del namespace del negocio autorizado.
+   * **Cabeceras de Sandbox:** Los archivos estáticos se despachan con `X-Content-Type-Options: nosniff` y `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox` para neutralizar ataques XSS a través de archivos vectoriales (SVG).
+11. **Patrón de Sesiones Aisladas de WhatsApp Web Multi-Tenant:**
+   * **Pool en Memoria:** `WhatsAppService` mantiene un `Map<number, SesionWhatsAppNegocio>` donde cada negocio opera su propia instancia independiente de `WASocket` de Baileys con su propio estado de conexión, timers de inactividad de QR y colas de mensajes pendientes.
+   * **Persistencia Aislada:** Las credenciales y claves criptográficas de cada sesión se guardan en directorios físicos separados en disco: `~/.barberia_whatsapp_sessions/negocio_<negocioId>/` o la ruta parametrizada por `WHATSAPP_SESSION_PATH`.
+   * **Colas con Caducidad:** Cada tenant cuenta con su cola de confirmaciones y reprogramaciones pendientes. Si la conexión se pierde, los mensajes se encolan y caducan automáticamente si se supera la hora de inicio de la cita (`horaInicioCitaMs`).
+   * **Migración Transparente:** La sesión histórica de la sede inicial (negocio 1) se migra automáticamente desde `~/.kyrios_whatsapp_session` al nuevo namespace `negocio_1` sin requerir nuevo escaneo de código QR.
 
 ---
 
@@ -1244,11 +1254,13 @@ model ConfiguracionNegocio {
 * **RNF-SEC-07 (A07: Authentication Failures):**  
   La autenticación administrativa y de clientes **DEBE** integrarse con el proveedor oficial Google OAuth 2.0 (SSO) y contar con Throttler / Rate Limiting configurado en 100 peticiones por minuto por IP para mitigar ataques de fuerza bruta.
 * **RNF-SEC-08 (A08: Software or Data Integrity Failures):**  
-  El módulo de subida de archivos (Multer) **DEBE** verificar el tipo MIME real inspeccionando los números mágicos del archivo binario y renombrarlo aleatoriamente mediante UUIDv4 para impedir la ejecución de scripts arbitrarios en el servidor.
+  El módulo de subida de archivos (Multer) **DEBE** verificar el tipo MIME real inspeccionando los números mágicos del archivo binario y renombrarlo aleatoriamente mediante UUIDv4 para impedir la ejecución de scripts arbitrarios en el servidor. Asimismo, el servicio de uploads debe servir los archivos con cabeceras `X-Content-Type-Options: nosniff` y `Content-Security-Policy: default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; sandbox` para neutralizar inyecciones XSS vía SVG y aislar el almacenamiento por tenant (`/uploads/negocios/:negocioId/`).
 * **RNF-SEC-09 (A09: Security Logging and Alerting):**  
-  El sistema **DEBE** registrar los eventos de auditoría en 3 archivos físicos diarios (`audit.log`, `security.log`, `error.log`) mediante Winston y despachar alertas asíncronas por correo SMTP al Superadministrador ante errores 500 y violaciones de rol 403.
+  El sistema **DEBE** registrar los eventos de auditoría en 3 archivos físicos diarios (`audit.log`, `security.log`, `error.log`) mediante Winston y despachar alertas asíncronas por correo SMTP al Superadministrador ante errores 500 y violaciones de rol 403. Los números de teléfono y datos personales (PII) en los logs de WhatsApp y notificaciones **DEBEN** enmascararse obligatoriamente bajo el formato `318****854` mediante `enmascararTelefono`.
 * **RNF-SEC-10 (A10: Mishandling of Exceptional Conditions):**  
   El servidor **DEBE** contar con un filtro global de excepciones que atrape cualquier error no previsto, devolviendo un mensaje genérico sin exponer trazas de código (*stack traces*) y aplicando el principio *Fail-Closed* en la disponibilidad.
+* **RNF-SEC-11 (CORS y Blindaje Estricto de Parámetros HTTP):**  
+  La configuración de CORS (`cors.config.ts`) autoriza exclusivamente las cabeceras requeridas por la arquitectura: `Content-Type`, `Authorization`, `X-Negocio-Slug`, `X-Reservation-Management-Token`. Asimismo, el `ValidationPipe` global con `{ whitelist: true, forbidNonWhitelisted: true }` rechaza inmediatamente con HTTP 400 cualquier parámetro de consulta o cuerpo no declarado en los DTOs oficiales, prohibiendo explícitamente enviar parámetros arbitrarios o de depuración (como `_t`).
 
 ---
 
@@ -1519,12 +1531,14 @@ Para garantizar consistencia absoluta entre Backend y Frontend, cualquier IA **D
 
 ## 10.2 Proveedor de Mensajería: WhatsApp Web Multi-Tenant (@whiskeysockets/baileys)
 * **Objetivo:** Notificaciones automáticas de confirmación y recordatorio de citas personalizadas por barbería.
-* **Aislamiento por Sede:**
-  * Cada barbería tiene su propia sesión independiente de WhatsApp.
+* **Aislamiento por Sede (Multi-Sesión):**
+  * Cada barbería tiene su propia sesión independiente de WhatsApp gestionada a través de un pool en memoria `Map<number, SesionWhatsAppNegocio>` en `WhatsAppService`.
   * Las credenciales de conexión se guardan de forma aislada en disco bajo la ruta:
-    `storage/sessions/<negocioId>/`
-  * La vinculación se realiza mediante código QR desde el panel de administración de la sede.
-  * Plantillas de mensajes dinámicas configurables por tenant en `WhatsAppPlantilla`.
+    `~/.barberia_whatsapp_sessions/negocio_<negocioId>/` (o la variable `WHATSAPP_SESSION_PATH`).
+  * Migración automática transparente para la sede fundadora (`negocio 1`) desde `~/.kyrios_whatsapp_session`.
+  * La vinculación se realiza mediante código QR desde el panel de administración de la sede, con temporizador de desconexión preventiva por inactividad.
+  * Colas de mensajes en memoria independientes por tenant con políticas de caducidad automática para citas vencidas (`horaInicioCitaMs`).
+  * Plantillas de mensajes dinámicas configurables por tenant en `WhatsAppPlantilla` con variables enriquecidas (`{negocio}`, `{cliente}`, `{fecha}`, `{hora}`, `{servicio}`, `{barbero}`, `{ubicacion}`, `{precio}`, `{enlaceGestion}`).
 
 ---
 
@@ -2185,9 +2199,12 @@ La plataforma adopta una **Arquitectura Cliente-Servidor Desacoplada (Decoupled 
 2. **Patrón Path-Prefix Multitenancy en Frontend:**
    * Las rutas del frontend se prefijan con el slug de la barbería (`/:slug/dashboard`, `/:slug/reservar`, `/:slug/catalogo`).
    * Axios extrae automáticamente el slug de la URL mediante `obtenerNegocioSlugActivo()` y lo envía en la cabecera `X-Negocio-Slug`.
-3. **Aislamiento de Sesiones por Pestaña (Tab Session Isolation):**
+   * **Aislamiento Estricto de Rutas Globales:** En las rutas raíz y de nivel de plataforma (`/`, `/plataforma`, `/explorar`), `obtenerNegocioSlugActivo()` **NUNCA** adopta un tenant residual de la sesión: limpia explícitamente `sessionStorage.removeItem('tab_negocio_slug')` y retorna `null`.
+   * **Protección de Identidad de Marca Corporativa:** El componente `BrandLogo` soporta la directiva `forceKyrios`: en las páginas de plataforma (`LandingPlataformaPage`, `PlataformaHubPage`) se fuerza el renderizado exclusivo de los activos oficiales de Kyrios Platform (`logo-white.svg` / `logo-black.svg`) suprimiendo logotipos personalizados y nombres de tenants previos.
+3. **Aislamiento de Sesiones por Pestaña (Tab Session Isolation) y Protección contra Storage Poisoning:**
    * Los tokens JWT y perfiles se almacenan con claves compuestas en almacenamiento de sesión: `token_barberia_<slug>` y `cliente_token_<slug>`.
    * Un usuario puede tener abiertas múltiples pestañas administrando sedes distintas simultáneamente sin colisión de estado.
+   * **Mitigación de Browser Storage Poisoning (CWE):** Almacenar claves o valores en `localStorage` o `sessionStorage` exige validación estricta. Todo slug interpolado en una clave de almacenamiento **DEBE** sanitizarse validando contra la expresión regular `/^[a-z0-9-]+$/` y codificándose con `encodeURIComponent`. Los identificadores de temas y configuraciones **DEBEN** validarse obligatoriamente contra una lista blanca fija en memoria (`THEMES_ALLOWLIST`) antes de persistir, neutralizando cualquier intento de inyección desde URLs o respuestas de API no confiables.
 4. **Patrón Repositorio (Repository Pattern):**
    * Desacopla la lógica de negocio pura de las consultas de persistencia a la base de datos (`reservas.repository.ts`, `usuarios.repository.ts`, `perfil-negocio.repository.ts`, etc.).
 5. **Patrón Adaptador y Puertos (Ports & Adapters):**
@@ -2413,14 +2430,18 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 ## 11.2 Principales Flujos de Usuario (User Journeys)
 
 ### 1. Flujo de Agendamiento Autónomo del Cliente (`/:slug/reservar`)
-1. **Paso 1 · Catálogo de Servicios:** Tarjetas de servicios del tenant con imagen, precio y duración.
-2. **Paso 2 · Selección de Profesional:** Barberos de esa sede habilitados para el servicio.
-3. **Paso 3 · Calendario y Horas Libres:** Consulta de disponibilidad en tiempo real con franjas libres de 60 min.
-4. **Paso 4 · Datos y Confirmación:** Agendamiento como invitado o con inicio de sesión Google, con generación inmediata de token de gestión y comprobante digital.
+1. **Paso 1 · Catálogo de Servicios:** Tarjetas de servicios del tenant con imagen, precio y duración. Solo muestra servicios activos que cuenten con al menos un barbero asignado (`esServicioActivoConBarberos`).
+2. **Paso 2 · Selección de Profesional:** Barberos de esa sede habilitados para el servicio seleccionado.
+3. **Paso 3 · Calendario y Horas Libres:** Consulta de disponibilidad en tiempo real con franjas libres. Segmentación visual de turnos (Mañana, Tarde, Noche) estructurada con `CONFIG_JORNADAS` para evitar código duplicado.
+4. **Paso 4 · Datos y Confirmación:** Agendamiento como invitado (nombre, apellido, teléfono) o con sesión activa de cliente. Genera de inmediato el comprobante digital (*Voucher*) con enlace personal y seguro de autogestión para invitados (`/:slug/c/:id/:token`) permitiendo ver, cancelar o reprogramar citas sin necesidad de cuenta.
 
 ### 2. Portal del Cliente (`/:slug/cliente/mi-cuenta`)
-* Historial de citas pasadas y turnos próximos en esa barbería.
-* Reprogramación o cancelación con un clic sin necesidad de recordar contraseñas.
+* **Próximas Citas:** Tarjeta destacada de agendamiento activo con opción de reprogramación directa o cancelación asistida.
+* **Historial de Citas Compacto y Ergonómico:**
+  * Vista de filas horizontales optimizadas para mobile y desktop con badges semánticos de estado (`CONFIRMADA`, `COMPLETADA`, `CANCELADA`, `NO ASISTIÓ`), fecha/hora, servicio, nombre del barbero asignado y precio formateado en COP.
+  * **Barra de Filtros Dinámica:** Píldoras interactivas con conteo en vivo de citas (`Todas (N)`, `Completadas (N)`, `Confirmadas (N)`, `Canceladas (N)`, `No asistió (N)`).
+  * **Paginación Inteligente:** Segmentación en bloques de 5 citas por página con controles accesibles de página anterior/siguiente adaptados a modo claro y oscuro.
+* **Autogestión de Invitados en 1 Clic:** Vista dedicada de comprobante y gestión (`/:slug/c/:id/:token`) permitiendo ver, cancelar o reprogramar citas sin necesidad de registro ni contraseña.
 
 ### 3. Panel Operativo del Barbero (`/:slug/dashboard`)
 * Tarjetas diarias con las citas asignadas ordenadas cronológicamente.
@@ -2434,6 +2455,7 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 * **Pestaña 2 · Diseño y Recursos de Marca:**
   * Selector interactivo de temas visuales con persistencia en backend (`temaKey`).
   * Gestión física y previsualización de Banner principal (PNG) y logos vectoriales (SVG).
+  * **Herramienta de Recorte Interactivo 1:1 (`ImageCropModal`):** Permite recortar fotos de barberos y avatares mediante un viewport interactivo con guías de regla de tercios, zoom deslizante con `Number.parseFloat`, arrastre fluido táctil/ratón y navegación por teclado accesible (`role="region"`).
 * **Pestaña 3 · Redes Sociales Oficiales (Fase 18):**
   * Selector visual con logos vectoriales oficiales (Instagram, WhatsApp, TikTok, Facebook, Otro).
   * Validación preventiva de duplicados con badge `Conectada`.
@@ -2449,9 +2471,14 @@ La plataforma implementa un diseño contemporáneo en Modo Oscuro (*Dark Mode*) 
 
 ---
 
-## 11.3 Criterios de Accesibilidad y Responsividad
+## 11.3 Criterios de Accesibilidad, Responsividad y Estándares SonarCloud
 * **Mobile-First:** El 85% de los clientes agenda desde dispositivos móviles; todas las áreas táctiles cuentan con un mínimo de 48x48 píxeles.
 * **Feedback Inmediato:** Indicadores visuales con spinners (`KyriosSpinner`) y notificaciones *Toast* para confirmar operaciones sin recargas completas.
+* **Regiones de Estado y Anuncios Dinámicos:** Utilizar la etiqueta semántica nativa `<output>` en lugar del atributo genérico `role="status"` para elementos de carga, alertas informativas o mensajes de éxito dinámicos.
+* **Agrupaciones y Controles de Formulario:** Utilizar elementos semánticos de agrupación como `<fieldset aria-label="...">` en barras de filtros por período y carruseles de fechas en lugar de `role="group"`.
+* **Inmutabilidad y Robustez de Componentes:** Las propiedades de componentes de React deben declararse como de solo lectura mediante `Readonly<Props>` o modificadores `readonly` en interfaces.
+* **Cero Ternarios Anidados en JSX:** Las condiciones múltiples deben extraerse en funciones auxiliares puras o mapas de configuración (ej. `CONFIG_JORNADAS` para mañana/tarde/noche), manteniendo la complejidad cognitiva por debajo de 15.
+* **No Duplicación de Bloques Estructurales:** Los patrones recurrentes (como filtros de barberos con servicios o renderizado de turnos) deben abstraerse en funciones de fachada reutilizables (`filtrarBarberosConServiciosActivos`, `esServicioActivoConBarberos`) para mantener la tasa de duplicación en SonarCloud por debajo del 3%.
 
 ---
 

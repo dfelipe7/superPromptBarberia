@@ -13,12 +13,14 @@
 
 ## 10.2 Proveedor de Mensajería: WhatsApp Web Multi-Tenant (@whiskeysockets/baileys)
 * **Objetivo:** Notificaciones automáticas de confirmación y recordatorio de citas personalizadas por barbería.
-* **Aislamiento por Sede:**
-  * Cada barbería tiene su propia sesión independiente de WhatsApp.
+* **Aislamiento por Sede (Multi-Sesión):**
+  * Cada barbería tiene su propia sesión independiente de WhatsApp gestionada a través de un pool en memoria `Map<number, SesionWhatsAppNegocio>` en `WhatsAppService`.
   * Las credenciales de conexión se guardan de forma aislada en disco bajo la ruta:
-    `storage/sessions/<negocioId>/`
-  * La vinculación se realiza mediante código QR desde el panel de administración de la sede.
-  * Plantillas de mensajes dinámicas configurables por tenant en `WhatsAppPlantilla`.
+    `~/.barberia_whatsapp_sessions/negocio_<negocioId>/` (o la variable `WHATSAPP_SESSION_PATH`).
+  * Migración automática transparente para la sede fundadora (`negocio 1`) desde `~/.kyrios_whatsapp_session`.
+  * La vinculación se realiza mediante código QR desde el panel de administración de la sede, con temporizador de desconexión preventiva por inactividad.
+  * Colas de mensajes en memoria independientes por tenant con políticas de caducidad automática para citas vencidas (`horaInicioCitaMs`).
+  * Plantillas de mensajes dinámicas configurables por tenant en `WhatsAppPlantilla` con variables enriquecidas (`{negocio}`, `{cliente}`, `{fecha}`, `{hora}`, `{servicio}`, `{barbero}`, `{ubicacion}`, `{precio}`, `{enlaceGestion}`).
 
 ---
 
