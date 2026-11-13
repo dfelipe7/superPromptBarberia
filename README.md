@@ -74,3 +74,17 @@ El script genera automáticamente:
 Todo el ciclo de ingeniería opera bajo supervisión humana continua:
 * **El modelo de IA** predice, automatiza y formula propuestas de código, DTOs y migraciones.
 * **El desarrollador humano** inspecciona diffs, ejecuta pruebas y retiene la autoridad exclusiva en las compuertas críticas (migraciones SQL, esquemas de BD, seguridad y despliegues).
+
+---
+
+## 📍 Conexión con los Repositorios del Proyecto y Documentación Normativa
+
+Este repositorio (**`superPromptBarberia`**) es la especificación génesis para los agentes de IA. La implementación real, las pruebas de seguridad (**SAST, SCA, IAST, DAST**), los estándares internacionales de documentación (**OpenAPI 3.0, Arc42, ISO/IEC/IEEE 26514:2022, IEEE 1063 y TypeDoc**) y las reglas de validación de IA (**`AGENTS.md`**) están centralizados en:
+
+| Repositorio / Centro Documental | Descripción | Enlace en GitHub |
+| :--- | :--- | :--- |
+| **📍 Hub Maestro de Documentación y Seguridad** | Punto de partida centralizado que reúne Arc42, OpenAPI 3.0, Manual ISO 26514, TypeDoc, Seguridad y Gobernanza IA. | [`Barberia-Backend/docs/README.md`](https://github.com/dfelipe7/Barberia-Backend/blob/feature/multitenant-core-fixes/docs/README.md) |
+| **🗄️ Repositorio Backend (`Barberia-Backend`)** | API REST NestJS 11 + Prisma 7 + MariaDB + Workflows SAST, SCA, IAST (Datadog) y DAST (OWASP ZAP). | [`github.com/dfelipe7/Barberia-Backend`](https://github.com/dfelipe7/Barberia-Backend/tree/feature/multitenant-core-fixes) |
+| **💻 Repositorio Frontend (`Barberia-Frontend`)** | Aplicación Web React 19 + Vite + TanStack Query + Workflows SAST y SCA. | [`github.com/dfelipe7/Barberia-Frontend`](https://github.com/dfelipe7/Barberia-Frontend/tree/feature/multitenant-core-fixes) |
+| **📜 Reglas de Agentes IA (`AGENTS.md`)** | Reglamento *Human-in-the-Loop* (cero commits/push automáticos, bitácoras `.ai/sessions/` y hooks). | [`Backend/AGENTS.md`](https://github.com/dfelipe7/Barberia-Backend/blob/feature/multitenant-core-fixes/AGENTS.md) · [`Frontend/AGENTS.md`](https://github.com/dfelipe7/Barberia-Frontend/blob/feature/multitenant-core-fixes/AGENTS.md) |
+
